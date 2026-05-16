@@ -1,10 +1,11 @@
-/* eslint-disable */
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Papa from "papaparse";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
 
-// ── Embedded player data (from 2024_players_details.csv) ─────────────────
-// In production: replace with Papa.parse('/csv/2024_players_details.csv')
-const PLAYERS_CSV_PATH = "/csv/2024_players_details.csv";
+// ── Embedded player data (from 2026_players_details.csv) ─────────────────
+// In production: replace with Papa.parse('/csv/2026_players_details.csv')
+const PLAYERS_CSV_PATH = "/2026_players_details.csv";
+
 // ── Spin type labels ──────────────────────────────────────────────────────
 const SPIN_TYPES = {
   "right-arm offbreak": { label: "Off-break", short: "OB", color: "#4F8EF7" },
@@ -68,7 +69,7 @@ function mockStatsFromId(id) {
   }));
 
   // Season trend
-  const seasons = ["2019", "2020", "2021", "2022", "2023", "2024"].map((yr, i) => ({
+const seasons = ["2019", "2020", "2021", "2022", "2023", "2024", "2025","2026","2027"].map((yr, i) => ({
     season: yr,
     sr: rng(60 + i, 50, 95),
     avg: rng(70 + i, 30, 18),
@@ -118,20 +119,20 @@ function mockPrediction(player, spinType, phase, venue) {
 }
 
 // ── Color palette ────────────────────────────────────────────────────────
-const PALETTE = {
-  primary: "#1D6FE8",
-  accent: "#06D6A0",
-  warn: "#F59E0B",
-  danger: "#EF4444",
-  purple: "#8B5CF6",
-  bg: "#0F1117",
-  surface: "#161B27",
-  surfaceHover: "#1E2535",
-  border: "rgba(255,255,255,0.07)",
-  textPrimary: "#F0F4FF",
-  textSecondary: "#8A95A8",
-  textMuted: "#4E5A6E",
-};
+// const PALETTE = {
+//   primary: "#1D6FE8",
+//   accent: "#06D6A0",
+//   warn: "#F59E0B",
+//   danger: "#EF4444",
+//   purple: "#8B5CF6",
+//   bg: "#0F1117",
+//   surface: "#161B27",
+//   surfaceHover: "#1E2535",
+//   border: "rgba(255,255,255,0.07)",
+//   textPrimary: "#F0F4FF",
+//   textSecondary: "#8A95A8",
+//   textMuted: "#4E5A6E",
+// };
 
 const DISMISS_COLORS = ["#4F8EF7", "#A78BFA", "#34D399", "#F59E0B", "#F472B6"];
 
@@ -219,6 +220,7 @@ const css = `
   .dot-anim span:nth-child(2){animation-delay:.2s}
   .dot-anim span:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
   .spin-type-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
   .stg-card{background:#1A2030;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;text-align:center}
   .stg-short{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;margin-bottom:4px}
@@ -531,15 +533,41 @@ function PredictionTab({ player, players, stats }) {
   const [loading, setLoading] = useState(false);
   const [pred, setPred] = useState(null);
 
-  const runPrediction = useCallback(() => {
-    if (!player) return;
-    setLoading(true);
-    setPred(null);
-    setTimeout(() => {
-      setPred(mockPrediction(player, spinType, phase, venue));
-      setLoading(false);
-    }, 900);
-  }, [player, spinType, phase, venue]);
+ const runPrediction = useCallback(async () => {
+  if (!player) return;
+  setLoading(true);
+  setPred(null);
+  try {
+    const statsRes = await fetch(`http://localhost:5000/player-stats/${player.ID}`);
+    const statsData = statsRes.ok ? await statsRes.json() : {};
+    const batter_features = statsData.batter_features ?? {};
+    const bvs_rows = statsData.batter_vs_spin ?? [];
+    const batter_vs_spin = bvs_rows.find(r => r.spin_type === spinType) ?? bvs_rows[0] ?? {};
+
+    const predRes = await fetch("http://localhost:5000/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ player_id: player.ID, spin_type: spinType, phase, venue, batter_features, batter_vs_spin }),
+    });
+
+    if (!predRes.ok) throw new Error("Flask returned error");
+    const result = await predRes.json();
+
+    setPred({
+      predicted_sr:   result.predicted_sr,
+      predicted_avg:  result.predicted_avg,
+      dismissal_prob: result.dismissal_prob,
+      expected_runs:  result.expected_runs ?? parseFloat((result.predicted_avg * (1 - result.dismissal_prob)).toFixed(1)),
+      confidence:     result.confidence,
+      spin_type: spinType, venue, phase,
+    });
+  } catch (err) {
+    console.warn("Flask unavailable, using mock:", err.message);
+    setPred(mockPrediction(player, spinType, phase, venue));
+  } finally {
+    setLoading(false);
+  }
+}, [player, spinType, phase, venue]);
 
   if (!player) return (
     <div className="empty-state">
@@ -652,10 +680,6 @@ function PredictionTab({ player, players, stats }) {
             </div>
           </div>
 
-          <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, padding: "12px 16px", marginTop: 8, fontSize: 12, color: "#8A95A8", lineHeight: 1.6 }}>
-            <span style={{ color: "#F59E0B", fontWeight: 600 }}>ℹ Model Note: </span>
-            Predictions are powered by your trained RandomForest/GradientBoosting models. Connect your <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 5px", borderRadius: 4 }}>.pkl</code> files via the Python backend to replace this mock output. Do not retrain without permission.
-          </div>
         </>
       )}
     </>
@@ -750,28 +774,42 @@ export default function App() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [activeTab, setActiveTab] = useState("profile");
   const [loadingPlayers, setLoadingPlayers] = useState(true);
+  const [apiStatus, setApiStatus] = useState("checking"); // "checking" | "connected" | "disconnected"
+
+  useEffect(() => {
+    const checkApi = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/health", { signal: AbortSignal.timeout(2000) });
+        setApiStatus(res.ok ? "connected" : "disconnected");
+      } catch {
+        setApiStatus("disconnected");
+      }
+    };
+    checkApi();
+    const interval = setInterval(checkApi, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load players from CSV
   useEffect(() => {
     // Try to load from /csv/2024_players_details.csv via PapaParse
     // Fallback: use embedded sample data if fetch fails
-    const tryLoad = async () => {
-      try {
-        const { default: Papa } = await import("https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js").catch(() => ({ default: null }));
-        if (Papa) {
-          Papa.parse(PLAYERS_CSV_PATH, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: ({ data }) => {
-              setPlayers(data.map(r => ({ ...r, ID: parseInt(r.ID) || r.ID })));
-              setLoadingPlayers(false);
-            },
-            error: () => { getFallback(); }
-          });
-        } else { getFallback(); }
-      } catch { getFallback(); }
-    };
+ const tryLoad = async () => {
+  try {
+    const res = await fetch(PLAYERS_CSV_PATH);
+    const text = await res.text();
+    const { data } = Papa.parse(text, { header: true, skipEmptyLines: true });
+    if (data.length > 0) {
+      setPlayers(data.map(r => ({ ...r, ID: parseInt(r.ID) || r.ID })));
+      setLoadingPlayers(false);
+    } else {
+      getFallback();
+    }
+  } catch (e) {
+    console.error("CSV load failed:", e);
+    getFallback();
+  }
+};
     const getFallback = () => {
       // Embedded player list (subset from 2024_players_details.csv)
       setPlayers(FALLBACK_PLAYERS);
@@ -798,6 +836,24 @@ export default function App() {
           <div className="topbar">
             <div className="topbar-title">{TAB_TITLES[activeTab]}</div>
             {selectedPlayer && <span style={{ fontSize: 13, color: "#4F8EF7", fontFamily: "'DM Mono', monospace" }}>{selectedPlayer.longName}</span>}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20,
+              background: apiStatus === "connected" ? "rgba(6,214,160,0.1)" : apiStatus === "disconnected" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
+              border: `1px solid ${apiStatus === "connected" ? "rgba(6,214,160,0.3)" : apiStatus === "disconnected" ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)"}`,
+            }}>
+              <div style={{
+                width: 7, height: 7, borderRadius: "50%",
+                backgroundColor: apiStatus === "connected" ? "#06D6A0" : apiStatus === "disconnected" ? "#EF4444" : "#F59E0B",
+                boxShadow: apiStatus === "connected" ? "0 0 6px #06D6A0" : "none",
+                animation: apiStatus === "checking" ? "pulse 1s infinite" : "none",
+              }} />
+              <span style={{
+                fontSize: 11, fontFamily: "'DM Mono', monospace",
+                color: apiStatus === "connected" ? "#06D6A0" : apiStatus === "disconnected" ? "#EF4444" : "#F59E0B",
+              }}>
+                {apiStatus === "connected" ? "API Connected" : apiStatus === "disconnected" ? "API Offline" : "Checking…"}
+              </span>
+            </div>
             <span className="topbar-badge">IPL 2024</span>
           </div>
           <div className="content">
