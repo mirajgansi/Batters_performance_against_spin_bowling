@@ -1,10 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import Papa from "papaparse";
+import { useState, useEffect, useCallback, useMemo  } from "react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
-
-// ── Embedded player data (from 2026_players_details.csv) ─────────────────
-// In production: replace with Papa.parse('/csv/2026_players_details.csv')
-const PLAYERS_CSV_PATH = "/2026_players_details.csv";
 
 // ── Spin type labels ──────────────────────────────────────────────────────
 const SPIN_TYPES = {
@@ -31,92 +26,7 @@ const VENUES = [
   "Ekana Cricket Stadium", "Narendra Modi Stadium",
 ];
 
-// ── Deterministic mock stats from player ID ───────────────────────────────
-function mockStatsFromId(id) {
-  const seed = typeof id === "number" ? id : parseInt(id) || 12345;
-  const rng = (offset = 0, range = 100, base = 0) =>
-    base + Math.round((((seed * 7 + offset * 13) % range) + range) % range);
-
-  const balls = rng(1, 400, 100);
-  const sr = rng(2, 80, 90);
-  const avg = rng(3, 40, 18);
-  const dot_pct = rng(4, 40, 25);
-  const boundary_pct = rng(5, 25, 10);
-  const six_pct = rng(6, 12, 3);
-  const wkt_rate = rng(7, 8, 2);
-
-  const pp = rng(8, 60, 85);
-  const mid = rng(9, 70, 95);
-  const death = rng(10, 90, 130);
-  const pp_avg = rng(11, 30, 15);
-  const mid_avg = rng(12, 35, 20);
-  const death_avg = rng(13, 25, 12);
-
-  const dismissalSeed = (seed % 100);
-  const bowled = Math.max(5, (dismissalSeed * 3) % 30);
-  const caught = Math.max(10, (dismissalSeed * 7) % 45);
-  const lbw = Math.max(5, (dismissalSeed * 11) % 20);
-  const stumped = Math.max(3, (dismissalSeed * 5) % 15);
-  const other = 100 - bowled - caught - lbw - stumped;
-
-  const spinComparison = SPIN_STYLE_KEYS.map((type, i) => ({
-    type: SPIN_TYPES[type].label,
-    short: SPIN_TYPES[type].short,
-    sr: rng(20 + i, 60, 85),
-    avg: rng(30 + i, 35, 15),
-    dismissalProb: parseFloat((rng(40 + i, 10, 2) / 100).toFixed(3)),
-    balls: rng(50 + i, 200, 30),
-  }));
-
-  // Season trend
-const seasons = ["2019", "2020", "2021", "2022", "2023", "2024", "2025","2026","2027"].map((yr, i) => ({
-    season: yr,
-    sr: rng(60 + i, 50, 95),
-    avg: rng(70 + i, 30, 18),
-    balls: rng(80 + i, 200, 40),
-  }));
-
-  return {
-    balls, sr, avg, dot_pct, boundary_pct, six_pct,
-    wkt_rate, dismissal_pct: wkt_rate,
-    rotation_pct: rng(14, 30, 25),
-    phases: [
-      { phase: "Powerplay", sr: pp, avg: pp_avg, balls: rng(15, 100, 20) },
-      { phase: "Middle", sr: mid, avg: mid_avg, balls: rng(16, 200, 50) },
-      { phase: "Death", sr: death, avg: death_avg, balls: rng(17, 80, 15) },
-    ],
-    dismissals: [
-      { name: "Caught", value: caught },
-      { name: "Bowled", value: bowled },
-      { name: "LBW", value: lbw },
-      { name: "Stumped", value: stumped },
-      { name: "Other", value: Math.max(0, other) },
-    ],
-    spinComparison,
-    seasons,
-  };
-}
-
-// ── Mock prediction from player + match context ───────────────────────────
-function mockPrediction(player, spinType, phase, venue) {
-  if (!player) return null;
-  const base = mockStatsFromId(player.ID);
-  const spinIdx = SPIN_STYLE_KEYS.indexOf(spinType);
-  const sc = base.spinComparison[Math.max(0, spinIdx)];
-  const phaseData = base.phases.find(p => p.phase.toLowerCase() === phase.toLowerCase()) || base.phases[1];
-
-  return {
-    predicted_sr: Math.round((sc.sr * 0.7 + phaseData.sr * 0.3) * 10) / 10,
-    predicted_avg: Math.round((sc.avg * 0.7 + phaseData.avg * 0.3) * 10) / 10,
-    dismissal_prob: parseFloat((sc.dismissalProb * 0.8 + base.wkt_rate / 100 * 0.2).toFixed(3)),
-    expected_runs: Math.round(sc.avg * (1 - sc.dismissalProb) * 10) / 10,
-    confidence: parseFloat(Math.min(95, 60 + Math.sqrt(sc.balls) * 1.2).toFixed(1)),
-    spin_type: spinType,
-    venue,
-    phase,
-    balls_faced: sc.balls,
-  };
-}
+const API = "http://localhost:5000";
 
 // ── Color palette ────────────────────────────────────────────────────────
 // const PALETTE = {
@@ -257,7 +167,7 @@ function Sidebar({ activeTab, setActiveTab }) {
       <div className="sidebar-logo">
         <div className="logo-icon">🏏</div>
         <div>
-          <div className="logo-text">SpinIQ</div>
+          <div className="logo-text">Spinners</div>
           <div className="logo-sub">Analytics</div>
         </div>
       </div>
@@ -273,7 +183,7 @@ function Sidebar({ activeTab, setActiveTab }) {
       <div style={{ flex: 1 }} />
       <div style={{ padding: "0 20px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
         <div style={{ fontSize: 10, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1 }}>Data</div>
-        <div style={{ fontSize: 12, color: "#8A95A8", marginTop: 4 }}>2024 IPL Season</div>
+        <div style={{ fontSize: 12, color: "#8A95A8", marginTop: 4 }}>2025 IPL Season</div>
         <div style={{ fontSize: 11, color: "#4E5A6E", marginTop: 2 }}>261 players • 5 spin types</div>
       </div>
     </aside>
@@ -538,20 +448,21 @@ function PredictionTab({ player, players, stats }) {
   setLoading(true);
   setPred(null);
   try {
-    const statsRes = await fetch(`http://localhost:5000/player-stats/${player.ID}`);
+    const statsRes = await fetch(`${API}/player-stats/${player.ID}`);
     const statsData = statsRes.ok ? await statsRes.json() : {};
     const batter_features = statsData.batter_features ?? {};
     const bvs_rows = statsData.batter_vs_spin ?? [];
-    const batter_vs_spin = bvs_rows.find(r => r.spin_type === spinType) ?? bvs_rows[0] ?? {};
+    const batter_vs_spin = bvs_rows[0] ?? {};
 
-    const predRes = await fetch("http://localhost:5000/predict", {
+    const predRes = await fetch(`${API}/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ player_id: player.ID, spin_type: spinType, phase, venue, batter_features, batter_vs_spin }),
     });
 
-    if (!predRes.ok) throw new Error("Flask returned error");
+    if (!predRes.ok) throw new Error("Flask error");
     const result = await predRes.json();
+    if (result.error) throw new Error(result.error);
 
     setPred({
       predicted_sr:   result.predicted_sr,
@@ -562,8 +473,8 @@ function PredictionTab({ player, players, stats }) {
       spin_type: spinType, venue, phase,
     });
   } catch (err) {
-    console.warn("Flask unavailable, using mock:", err.message);
-    setPred(mockPrediction(player, spinType, phase, venue));
+    console.error("Prediction failed:", err.message);
+    alert("Prediction failed: " + err.message + "\n\nMake sure Flask is running.");
   } finally {
     setLoading(false);
   }
@@ -790,36 +701,31 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Load players from CSV
-  useEffect(() => {
-    // Try to load from /csv/2024_players_details.csv via PapaParse
-    // Fallback: use embedded sample data if fetch fails
- const tryLoad = async () => {
-  try {
-    const res = await fetch(PLAYERS_CSV_PATH);
-    const text = await res.text();
-    const { data } = Papa.parse(text, { header: true, skipEmptyLines: true });
-    if (data.length > 0) {
-      setPlayers(data.map(r => ({ ...r, ID: parseInt(r.ID) || r.ID })));
+  // Load players from Flask (which reads the CSV)
+useEffect(() => {
+  if (apiStatus !== "connected") return;
+  fetch(`${API}/players`)
+    .then(res => res.json())
+    .then(data => {
+      console.log("Players loaded:", data.length);
+      setPlayers(data);
       setLoadingPlayers(false);
-    } else {
-      getFallback();
-    }
-  } catch (e) {
-    console.error("CSV load failed:", e);
-    getFallback();
-  }
-};
-    const getFallback = () => {
-      // Embedded player list (subset from 2024_players_details.csv)
-      setPlayers(FALLBACK_PLAYERS);
+    })
+    .catch(err => {
+      console.error("Failed to load players:", err);
       setLoadingPlayers(false);
-    };
-    tryLoad();
-  }, []);
+    });
+}, [apiStatus]);
 
-  const stats = useMemo(() => selectedPlayer ? mockStatsFromId(selectedPlayer.ID) : null, [selectedPlayer]);
+const [stats, setStats] = useState(null);
 
+useEffect(() => {
+  if (!selectedPlayer || apiStatus !== "connected") { setStats(null); return; }
+  fetch(`${API}/player-stats/${selectedPlayer.ID}`)
+    .then(res => res.json())
+    .then(data => data.error ? setStats(null) : setStats(data))
+    .catch(() => setStats(null));
+}, [selectedPlayer, apiStatus]);
   const TAB_TITLES = {
     profile: "Player Profile",
     analysis: "Spin Analysis",
@@ -854,16 +760,18 @@ export default function App() {
                 {apiStatus === "connected" ? "API Connected" : apiStatus === "disconnected" ? "API Offline" : "Checking…"}
               </span>
             </div>
-            <span className="topbar-badge">IPL 2024</span>
+            <span className="topbar-badge">Batsman performance against spin</span>
           </div>
           <div className="content">
             {/* Player selector */}
             <div className="card section-gap">
               <div className="card-title"><span>🏏</span> Select Batter</div>
-              {loadingPlayers
-                ? <div style={{ color: "#4E5A6E", fontSize: 13 }}>Loading players…</div>
-                : <PlayerSearch players={players} selected={selectedPlayer} onSelect={setSelectedPlayer} />
-              }
+              {apiStatus === "disconnected"
+  ? <div style={{ color: "#EF4444", fontSize: 13 }}>⚠ Start Flask to load players</div>
+  : apiStatus === "checking" || loadingPlayers
+  ? <div style={{ color: "#4E5A6E", fontSize: 13 }}>Loading players…</div>
+  : <PlayerSearch players={players} selected={selectedPlayer} onSelect={setSelectedPlayer} />
+}
               {selectedPlayer && (
                 <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(29,111,232,0.08)", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
                   <PlayerAvatar player={selectedPlayer} size={28} />
@@ -874,35 +782,24 @@ export default function App() {
             </div>
 
             {/* Active tab */}
-            {activeTab === "profile" && <ProfileTab player={selectedPlayer} stats={stats} />}
-            {activeTab === "analysis" && <AnalysisTab player={selectedPlayer} stats={stats} />}
-            {activeTab === "prediction" && <PredictionTab player={selectedPlayer} players={players} stats={stats} />}
-            {activeTab === "compare" && <CompareTab player={selectedPlayer} stats={stats} />}
+            {apiStatus === "disconnected" ? (
+              <div className="empty-state">
+                <div className="empty-icon">🔌</div>
+                <div className="empty-text">Flask API is offline. Start it with:<br/><code style={{background:"rgba(255,255,255,0.08)",padding:"4px 8px",borderRadius:4,fontSize:11,display:"block",marginTop:8}}>python app.py</code></div>
+              </div>
+            ) : selectedPlayer && !stats ? (
+              <div className="loading"><span>Loading player stats</span><span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></div>
+            ) : (
+              <>
+                {activeTab === "profile" && <ProfileTab player={selectedPlayer} stats={stats} />}
+                {activeTab === "analysis" && <AnalysisTab player={selectedPlayer} stats={stats} />}
+                {activeTab === "prediction" && <PredictionTab player={selectedPlayer} players={players} stats={stats} />}
+                {activeTab === "compare" && <CompareTab player={selectedPlayer} stats={stats} />}
+              </>
+            )}
           </div>
         </div>
       </div>
     </>
   );
 }
-
-// ── Fallback player list (embedded from CSV) ──────────────────────────────
-const FALLBACK_PLAYERS = [
-  { ID: 95094, Name: "RD Gaikwad", longName: "Ruturaj Gaikwad", battingName: "RD Gaikwad", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/322200/322236.png", dob: "31/1/1997", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "ob", longBowlingStyles: "right-arm offbreak", espn_url: "https://www.espncricinfo.com/cricketers/ruturaj-gaikwad-1060380" },
-  { ID: 46597, Name: "MM Ali", longName: "Moeen Ali", battingName: "MM Ali", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/316500/316557.png", dob: "18/6/1987", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "ob", longBowlingStyles: "right-arm offbreak", espn_url: "https://www.espncricinfo.com/cricketers/moeen-ali-8917" },
-  { ID: 7593, Name: "MS Dhoni", longName: "MS Dhoni", battingName: "MS Dhoni", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/319900/319946.png", dob: "7/7/1981", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "rm", longBowlingStyles: "right-arm medium", espn_url: "https://www.espncricinfo.com/cricketers/ms-dhoni-28081" },
-  { ID: 49247, Name: "RA Jadeja", longName: "Ravindra Jadeja", battingName: "RA Jadeja", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/316600/316600.png", dob: "6/12/1988", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "sla", longBowlingStyles: "slow left-arm orthodox", espn_url: "https://www.espncricinfo.com/cricketers/ravindra-jadeja-234675" },
-  { ID: 51096, Name: "AM Rahane", longName: "Ajinkya Rahane", battingName: "AM Rahane", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/316600/316620.png", dob: "6/6/1988", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "rm", longBowlingStyles: "right-arm medium", espn_url: "https://www.espncricinfo.com/cricketers/ajinkya-rahane-277916" },
-  { ID: 74975, Name: "S Dube", longName: "Shivam Dube", battingName: "S Dube", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/322700/322703.png", dob: "26/6/1993", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "rm", longBowlingStyles: "right-arm medium", espn_url: "https://www.espncricinfo.com/cricketers/shivam-dube-931581" },
-  { ID: 89105, Name: "R Ravindra", longName: "Rachin Ravindra", battingName: "R Ravindra", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/329700/329746.png", dob: "18/11/1999", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "sla", longBowlingStyles: "slow left-arm orthodox", espn_url: "https://www.espncricinfo.com/cricketers/rachin-ravindra-1131647" },
-  { ID: 64864, Name: "MJ Santner", longName: "Mitchell Santner", battingName: "MJ Santner", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/319700/319792.png", dob: "5/2/1992", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "sla", longBowlingStyles: "slow left-arm orthodox", espn_url: "https://www.espncricinfo.com/cricketers/mitchell-santner-578555" },
-  { ID: 104818, Name: "Sameer Rizvi", longName: "Sameer Rizvi", battingName: "Sameer Rizvi", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/378000/378091.1.png", dob: "10/12/2004", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "ob", longBowlingStyles: "right-arm offbreak", espn_url: "https://www.espncricinfo.com/cricketers/sameer-rizvi-1408676" },
-  { ID: 58772, Name: "DJ Mitchell", longName: "Daryl Mitchell", battingName: "DJ Mitchell", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/321200/321212.png", dob: "20/2/1991", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "rm", longBowlingStyles: "right-arm medium", espn_url: "https://www.espncricinfo.com/cricketers/daryl-mitchell-577739" },
-  { ID: 110976, Name: "SK Rasheed", longName: "Shaik Rasheed", battingName: "SK Rasheed", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/345000/345086.png", dob: "15/5/2003", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "lb", longBowlingStyles: "legbreak", espn_url: "https://www.espncricinfo.com/cricketers/shaik-rasheed-1408677" },
-  { ID: 95065, Name: "AJ Mandal", longName: "Ajay Mandal", battingName: "AJ Mandal", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/314900/314902.jpg", dob: "3/9/1998", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "sla", longBowlingStyles: "slow left-arm orthodox", espn_url: "https://www.espncricinfo.com/cricketers/ajay-mandal-1408678" },
-  { ID: 105938, Name: "M Pathirana", longName: "Matheesha Pathirana", battingName: "M Pathirana", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/355400/355402.png", dob: "18/3/2003", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "rf", longBowlingStyles: "right-arm fast", espn_url: "https://www.espncricinfo.com/cricketers/matheesha-pathirana-1408679" },
-  { ID: 54674, Name: "Mustafizur Rahman", longName: "Mustafizur Rahman", battingName: "Mustafizur Rahman", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/319700/319734.png", dob: "6/9/1995", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "lfm", longBowlingStyles: "left-arm fast-medium", espn_url: "https://www.espncricinfo.com/cricketers/mustafizur-rahman-781803" },
-  { ID: 62022, Name: "DL Chahar", longName: "Deepak Chahar", battingName: "DL Chahar", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/322700/322704.png", dob: "7/8/1992", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "rm", longBowlingStyles: "right-arm medium", espn_url: "https://www.espncricinfo.com/cricketers/deepak-chahar-447261" },
-  { ID: 24605, Name: "MJ Clarke", longName: "Mitchell Marsh", battingName: "MJ Clarke", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/316500/316517.png", dob: "20/10/1991", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "rfm", longBowlingStyles: "right-arm fast-medium", espn_url: "https://www.espncricinfo.com/cricketers/mitchell-marsh-272450" },
-  { ID: 80607, Name: "TU Deshpande", longName: "Tushar Deshpande", battingName: "TU Deshpande", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/339100/339160.png", dob: "15/5/1995", battingStyles: "lhb", longBattingStyles: "left-hand bat", bowlingStyles: "rm", longBowlingStyles: "right-arm medium", espn_url: "https://www.espncricinfo.com/cricketers/tushar-deshpande-822553" },
-  { ID: 63314, Name: "RJ Gleeson", longName: "Richard Gleeson", battingName: "RJ Gleeson", imgUrl: "https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_640,q_50/lsci/db/PICTURES/CMS/324200/324238.png", dob: "2/12/1987", battingStyles: "rhb", longBattingStyles: "right-hand bat", bowlingStyles: "rf", longBowlingStyles: "right-arm fast", espn_url: "https://www.espncricinfo.com/cricketers/richard-gleeson-355262" },
-];
