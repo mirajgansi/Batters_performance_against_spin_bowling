@@ -10,6 +10,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import os
+import requests as req
 
 app = Flask(__name__)
 CORS(app)
@@ -29,6 +30,21 @@ model_wicket   = load_pkl("model_wicket.pkl")
 scaler_cluster = load_pkl("scaler_cluster.pkl")
 print("All models loaded.")
 
+#Ollama model
+@app.route("/ai-insight", methods=["POST"])
+def ai_insight():
+    data   = request.get_json(force=True)
+    prompt = data.get("prompt", "")
+    try:
+        res = req.post("http://localhost:11434/api/generate", json={
+            "model":  "llama3.2",
+            "prompt": prompt,
+            "stream": False,
+        })
+        return jsonify({"text": res.json()["response"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 # ── Load CSVs once at startup ─────────────────────────────────────────────
 print("Loading CSVs...")
 bf_df      = pd.read_csv(os.path.join(BASE_DIR, "batter_features.csv"))
@@ -55,7 +71,9 @@ def get_batter_name(player_id: int):
 def get_players():
     """Returns all players from 2026_players_details.csv"""
     players = players_df.copy()
-    players["ID"] = players["ID"].apply(lambda x: int(x) if str(x).isdigit() else x)
+    players["ID"] = pd.to_numeric(players["ID"], errors="coerce").fillna(0).astype(int)
+    # Replace all NaN/None with empty string to avoid JSON serialization issues
+    players = players.where(pd.notnull(players), "")
     return jsonify(players.to_dict(orient="records"))
 
 

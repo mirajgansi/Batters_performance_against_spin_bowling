@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo  } from "react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
-
+import { Sparkles } from "lucide-react";
 // ── Spin type labels ──────────────────────────────────────────────────────
 const SPIN_TYPES = {
   "right-arm offbreak": { label: "Off-break", short: "OB", color: "#4F8EF7" },
@@ -27,6 +27,18 @@ const VENUES = [
 ];
 
 const API = "http://localhost:5000";
+
+// ── AI Insight helper ─────────────────────────────────────────────────────
+async function generateAIInsight(prompt) {
+  const res = await fetch(`${API}/ai-insight`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.text;
+}
 
 // ── Color palette ────────────────────────────────────────────────────────
 // const PALETTE = {
@@ -139,6 +151,10 @@ const css = `
   .scrollbar-hide::-webkit-scrollbar{display:none}
   .scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
   select option{background:#1A2030}
+  .ai-card{background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(29,111,232,0.05));border:1px solid rgba(139,92,246,0.25);border-radius:14px;padding:20px 22px}
+  .ai-card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#A78BFA;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .ai-text{font-size:13.5px;color:#C5D0E6;line-height:1.8;font-family:'Inter',sans-serif}
+  .ai-loading{display:flex;align-items:center;gap:8px;color:#8B5CF6;font-size:13px;font-family:'DM Mono',monospace}
 `;
 
 // ── Custom Tooltip ─────────────────────────────────────────────────────────
@@ -358,6 +374,22 @@ function ProfileTab({ player, stats }) {
 
 // ── Analysis Tab ──────────────────────────────────────────────────────────
 function AnalysisTab({ player, stats }) {
+  const [insight, setInsight] = useState(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+
+  useEffect(() => {
+    if (!player || !stats) return;
+    setInsight(null);
+    setInsightLoading(true);
+    generateAIInsight(`You are an expert IPL cricket analyst. Analyze this batter's performance against spin bowling in 4-5 sentences. Be specific, use cricket terminology, mention weaknesses and strengths, and give a tactical recommendation for captains/coaches.
+
+Player: ${player.longName} (${player.longBattingStyles})
+Overall vs Spin — Strike Rate: ${stats.sr}, Average: ${stats.avg}, Dot Ball %: ${stats.dot_pct?.toFixed(1)}%, Boundary %: ${stats.boundary_pct?.toFixed(1)}%, Wicket Rate: ${stats.wkt_rate?.toFixed(1)}%
+Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases?.[1]?.sr}, Death SR ${stats.phases?.[2]?.sr}`)
+      .then(text => { setInsight(text); setInsightLoading(false); })
+      .catch(() => { setInsight("AI insight unavailable — make sure Ollama is running."); setInsightLoading(false); });
+  }, [player?.ID, stats]);
+
   if (!player) return (
     <div className="empty-state">
       <div className="empty-icon">📊</div>
@@ -367,6 +399,15 @@ function AnalysisTab({ player, stats }) {
 
   return (
     <>
+      {/* AI Insight */}
+      <div className="ai-card section-gap">
+        <div className="ai-card-title"><Sparkles size={15}/> AI Analysis</div>
+        {insightLoading
+          ? <div className="ai-loading"><Sparkles size={13}/><span>Generating insight<span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></span></div>
+          : <p className="ai-text">{insight}</p>
+        }
+      </div>
+
       {/* Phase performance */}
       <div className="card section-gap">
         <div className="card-title"><span>🕐</span> Phase-Wise Performance vs Spin</div>
@@ -442,6 +483,22 @@ function PredictionTab({ player, players, stats }) {
   const [oppTeam, setOppTeam] = useState(IPL_TEAMS[0]);
   const [loading, setLoading] = useState(false);
   const [pred, setPred] = useState(null);
+  const [predInsight, setPredInsight] = useState(null);
+  const [predInsightLoading, setPredInsightLoading] = useState(false);
+
+  useEffect(() => {
+    if (!pred || !player) return;
+    setPredInsight(null);
+    setPredInsightLoading(true);
+    generateAIInsight(`You are an expert IPL cricket analyst. In 4-5 sentences explain this match prediction and what it means for team strategy. Be specific about bowling tactics, field placements, and match situation.
+
+Player: ${player.longName} (${player.longBattingStyles})
+Bowling: ${SPIN_TYPES[pred.spin_type]?.label} in ${pred.phase} overs at ${pred.venue}
+Predicted Strike Rate: ${pred.predicted_sr}, Predicted Average: ${pred.predicted_avg}
+Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs: ${pred.expected_runs}, Model Confidence: ${pred.confidence}%`)
+      .then(text => { setPredInsight(text); setPredInsightLoading(false); })
+      .catch(() => { setPredInsight("AI insight unavailable — make sure Ollama is running."); setPredInsightLoading(false); });
+  }, [pred]);
 
  const runPrediction = useCallback(async () => {
   if (!player) return;
@@ -589,6 +646,15 @@ function PredictionTab({ player, players, stats }) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+
+          {/* AI Prediction Insight */}
+          <div className="ai-card section-gap">
+            <div className="ai-card-title"><Sparkles size={15}/> AI Prediction Insight</div>
+            {predInsightLoading
+              ? <div className="ai-loading"><Sparkles size={13}/><span>Generating insight<span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></span></div>
+              : <p className="ai-text">{predInsight}</p>
+            }
           </div>
 
         </>
