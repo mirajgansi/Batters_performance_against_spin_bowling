@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo  } from "react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ShieldAlert, Zap, TrendingUp, TrendingDown } from "lucide-react";
 // ── Spin type labels ──────────────────────────────────────────────────────
 const SPIN_TYPES = {
   "right-arm offbreak": { label: "Off-break", short: "OB", color: "#4F8EF7" },
@@ -29,33 +29,157 @@ const VENUES = [
 const API = "http://localhost:5000";
 
 // ── AI Insight helper ─────────────────────────────────────────────────────
-async function generateAIInsight(prompt) {
+async function generateAIInsight(prompt, onToken) {
   const res = await fetch(`${API}/ai-insight`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.text;
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const lines = decoder.decode(value).split("\n");
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const chunk = JSON.parse(line.slice(6));
+          fullText += chunk.token;
+          if (onToken) onToken(fullText);
+        } catch {}
+      }
+    }
+  }
+  return fullText;
+}
+
+// ── Anthropic API direct call for structured spin analysis ─────────────────
+async function generateSpinAnalysis(player, stats, spinComparison) {
+  const spinSummary = spinComparison.map(s => 
+    `${s.type}: SR=${s.sr}, Avg=${s.avg}, Balls=${s.balls}, DismissalProb=${(s.dismissalProb*100).toFixed(1)}%`
+  ).join("\n");
+
+  const prompt = `You are an expert IPL cricket analyst specializing in spin bowling matchups.
+
+Analyze this batter's performance against each spin type and return ONLY a JSON object. No explanation, no markdown, no preamble.
+
+Player: ${player.longName} (${player.longBattingStyles})
+Overall vs Spin — SR: ${stats.sr}, Avg: ${stats.avg}, Dot%: ${stats.dot_pct?.toFixed(1)}%
+
+Performance vs each spin type:
+${spinSummary}
+
+Return this exact JSON structure:
+{
+  "overall_verdict": "2-3 sentence tactical summary for captains",
+  "spin_types": [
+    {
+      "type": "Off-break",
+      "short": "OB",
+      "rating": "strength|neutral|weakness",
+      "confidence": 0-100,
+      "headline": "5-8 word headline",
+      "detail": "1-2 sentence tactical insight",
+      "bowling_tip": "specific bowling tip vs this batter",
+      "key_stat": "the most notable stat"
+    }
+  ]
+}
+
+Classify as "strength" if SR > 130 or Avg > 35, "weakness" if SR < 100 or Avg < 20 or DismissalProb > 15%, otherwise "neutral".`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const data = await response.json();
+  const text = data.content?.map(i => i.text || "").join("") || "";
+  const clean = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(clean);
+}
+
+// ── Stats Fingerprint ─────────────────────────────────────────────────────
+function buildStatsFingerprint(stats) {
+  if (!stats) return "";
+  return [
+    stats.sr?.toFixed(2),
+    stats.avg?.toFixed(2),
+    stats.dot_pct?.toFixed(2),
+    stats.boundary_pct?.toFixed(2),
+    stats.wkt_rate?.toFixed(2),
+    stats.balls,
+    stats.phases?.map(p => `${p.sr}|${p.avg}`).join(","),
+  ].join("_");
+}
+
+function buildPredFingerprint(pred) {
+  if (!pred) return "";
+  return [
+    pred.spin_type,
+    pred.phase,
+    pred.venue,
+    pred.predicted_sr?.toFixed(2),
+    pred.predicted_avg?.toFixed(2),
+    pred.dismissal_prob?.toFixed(4),
+  ].join("_");
+}
+
+// ── localStorage AI Insight Cache ─────────────────────────────────────────
+const LS_PREFIX = "ai_insight_";
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function lsCacheKey(type, playerId, fingerprint) {
+  return `${LS_PREFIX}${type}_${playerId}_${fingerprint}`.replace(/\s+/g, "_");
+}
+
+function getCachedInsight(type, playerId, fingerprint) {
+  try {
+    const key = lsCacheKey(type, playerId, fingerprint);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { text, savedAt } = JSON.parse(raw);
+    if (Date.now() - savedAt > CACHE_TTL_MS) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return text;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedInsight(type, playerId, fingerprint, text) {
+  try {
+    prunePlayerInsights(type, playerId, fingerprint);
+    const key = lsCacheKey(type, playerId, fingerprint);
+    localStorage.setItem(key, JSON.stringify({ text, savedAt: Date.now() }));
+  } catch (e) {
+    console.warn("Could not cache AI insight:", e);
+  }
+}
+
+function prunePlayerInsights(type, playerId, currentFingerprint) {
+  try {
+    const prefix = `${LS_PREFIX}${type}_${playerId}_`;
+    const currentKey = lsCacheKey(type, playerId, currentFingerprint);
+    const toDelete = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix) && k !== currentKey) toDelete.push(k);
+    }
+    toDelete.forEach(k => localStorage.removeItem(k));
+  } catch {}
 }
 
 // ── Color palette ────────────────────────────────────────────────────────
-// const PALETTE = {
-//   primary: "#1D6FE8",
-//   accent: "#06D6A0",
-//   warn: "#F59E0B",
-//   danger: "#EF4444",
-//   purple: "#8B5CF6",
-//   bg: "#0F1117",
-//   surface: "#161B27",
-//   surfaceHover: "#1E2535",
-//   border: "rgba(255,255,255,0.07)",
-//   textPrimary: "#F0F4FF",
-//   textSecondary: "#8A95A8",
-//   textMuted: "#4E5A6E",
-// };
-
 const DISMISS_COLORS = ["#4F8EF7", "#A78BFA", "#34D399", "#F59E0B", "#F472B6"];
 
 // ── CSS ───────────────────────────────────────────────────────────────────
@@ -143,6 +267,8 @@ const css = `
   .dot-anim span:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  @keyframes fadeSlideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .spin-type-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
   .stg-card{background:#1A2030;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;text-align:center}
   .stg-short{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;margin-bottom:4px}
@@ -155,6 +281,55 @@ const css = `
   .ai-card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#A78BFA;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
   .ai-text{font-size:13.5px;color:#C5D0E6;line-height:1.8;font-family:'Inter',sans-serif}
   .ai-loading{display:flex;align-items:center;gap:8px;color:#8B5CF6;font-size:13px;font-family:'DM Mono',monospace}
+  .cache-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:10px;margin-left:auto;text-transform:uppercase;letter-spacing:0.5px}
+  .cache-badge.hit{background:rgba(6,214,160,0.1);color:#06D6A0;border:1px solid rgba(6,214,160,0.25)}
+  .cache-badge.fresh{background:rgba(139,92,246,0.1);color:#A78BFA;border:1px solid rgba(139,92,246,0.25)}
+
+  /* ── Spin AI Analysis ── */
+  .spin-ai-wrap{border-radius:16px;overflow:hidden;background:#0E1320;border:1px solid rgba(139,92,246,0.2);margin-bottom:20px}
+  .spin-ai-header{padding:18px 22px;background:linear-gradient(90deg,rgba(139,92,246,0.12),rgba(29,111,232,0.07));border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between}
+  .spin-ai-header-left{display:flex;align-items:center;gap:10px}
+  .spin-ai-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#C5B8FF;text-transform:uppercase;letter-spacing:0.8px}
+  .spin-ai-subtitle{font-size:11px;color:#4E5A6E;font-family:'DM Mono',monospace;margin-top:2px}
+  .spin-ai-body{padding:20px 22px}
+  .verdict-box{background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;color:#C5D0E6;line-height:1.7;font-style:italic}
+  .spin-type-analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:800px){.spin-type-analysis-grid{grid-template-columns:1fr}}
+  .sta-card{border-radius:12px;padding:16px 18px;border:1px solid;position:relative;overflow:hidden;animation:fadeSlideIn .35s ease both}
+  .sta-card.strength{background:rgba(52,211,153,0.05);border-color:rgba(52,211,153,0.2)}
+  .sta-card.neutral{background:rgba(79,142,247,0.05);border-color:rgba(79,142,247,0.18)}
+  .sta-card.weakness{background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.2)}
+  .sta-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+  .sta-left{display:flex;align-items:center;gap:8px}
+  .sta-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:2px}
+  .sta-type-name{font-family:'DM Mono',monospace;font-size:12px;color:#8A95A8;text-transform:uppercase;letter-spacing:0.6px}
+  .sta-headline{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-top:2px}
+  .sta-headline.strength{color:#34D399}
+  .sta-headline.neutral{color:#4F8EF7}
+  .sta-headline.weakness{color:#F87171}
+  .sta-rating-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;flex-shrink:0}
+  .sta-rating-badge.strength{background:rgba(52,211,153,0.12);color:#34D399;border:1px solid rgba(52,211,153,0.25)}
+  .sta-rating-badge.neutral{background:rgba(79,142,247,0.12);color:#4F8EF7;border:1px solid rgba(79,142,247,0.25)}
+  .sta-rating-badge.weakness{background:rgba(239,68,68,0.1);color:#F87171;border:1px solid rgba(239,68,68,0.2)}
+  .sta-detail{font-size:12.5px;color:#8A95A8;line-height:1.6;margin-bottom:10px}
+  .sta-tip{background:rgba(255,255,255,0.03);border-left:2px solid;border-radius:0 6px 6px 0;padding:8px 12px;font-size:11.5px;font-family:'DM Mono',monospace;line-height:1.5}
+  .sta-tip.strength{border-color:#34D399;color:#34D399}
+  .sta-tip.neutral{border-color:#4F8EF7;color:#4F8EF7}
+  .sta-tip.weakness{border-color:#F87171;color:#F87171}
+  .sta-tip-label{font-size:9px;opacity:0.6;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px}
+  .sta-key-stat{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:10px;font-family:'DM Mono',monospace;color:#4E5A6E;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.05)}
+  .conf-mini{height:2px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:12px;overflow:hidden}
+  .conf-mini-fill{height:100%;border-radius:2px;transition:width .8s ease}
+  .conf-mini-fill.strength{background:linear-gradient(90deg,#34D399,#06D6A0)}
+  .conf-mini-fill.neutral{background:linear-gradient(90deg,#4F8EF7,#06D6A0)}
+  .conf-mini-fill.weakness{background:linear-gradient(90deg,#F87171,#F59E0B)}
+  .regen-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);color:#A78BFA;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Mono',monospace;transition:all .15s}
+  .regen-btn:hover{background:rgba(139,92,246,0.2)}
+  .regen-btn:disabled{opacity:0.4;cursor:not-allowed}
+  .shimmer-line{height:13px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px}
+  .legend-row{display:flex;gap:16px;margin-bottom:16px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:#8A95A8}
+  .legend-dot{width:8px;height:8px;border-radius:50%}
 `;
 
 // ── Custom Tooltip ─────────────────────────────────────────────────────────
@@ -285,7 +460,6 @@ function ProfileTab({ player, stats }) {
 
   return (
     <>
-      {/* Hero */}
       <div className="profile-hero section-gap">
         <PlayerAvatar player={player} size={80} />
         <div>
@@ -304,7 +478,6 @@ function ProfileTab({ player, stats }) {
         </div>
       </div>
 
-      {/* Key stats */}
       <div className="grid-4 section-gap">
         {[
           { val: stats.balls, lbl: "Balls Faced", sub: "vs spin" },
@@ -321,7 +494,6 @@ function ProfileTab({ player, stats }) {
       </div>
 
       <div className="grid-2 section-gap">
-        {/* Radar */}
         <div className="card">
           <div className="card-title"><span>🕸</span> Batting Profile</div>
           <div className="chart-container">
@@ -335,7 +507,6 @@ function ProfileTab({ player, stats }) {
           </div>
         </div>
 
-        {/* Dismissals */}
         <div className="card">
           <div className="card-title"><span>🎯</span> Dismissal Types</div>
           <div className="chart-container">
@@ -351,7 +522,6 @@ function ProfileTab({ player, stats }) {
         </div>
       </div>
 
-      {/* Season trend */}
       <div className="card">
         <div className="card-title"><span>📈</span> Season Trend vs Spin</div>
         <div className="chart-container">
@@ -376,18 +546,46 @@ function ProfileTab({ player, stats }) {
 function AnalysisTab({ player, stats }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState(null);
 
   useEffect(() => {
     if (!player || !stats) return;
+
+    const fingerprint = buildStatsFingerprint(stats);
+    const cached = getCachedInsight("analysis", player.ID, fingerprint);
+
+    if (cached) {
+      setInsight(cached);
+      setInsightLoading(false);
+      setCacheStatus("hit");
+      return;
+    }
+
     setInsight(null);
     setInsightLoading(true);
-    generateAIInsight(`You are an expert IPL cricket analyst. Analyze this batter's performance against spin bowling in 4-5 sentences. Be specific, use cricket terminology, mention weaknesses and strengths, and give a tactical recommendation for captains/coaches.
+    setCacheStatus(null);
+
+    const prompt = `You are an expert IPL cricket analyst. Analyze this batter's performance against spin bowling in 4-5 sentences. Be specific, use cricket terminology, mention weaknesses and strengths, and give a tactical recommendation for captains/coaches.
 
 Player: ${player.longName} (${player.longBattingStyles})
 Overall vs Spin — Strike Rate: ${stats.sr}, Average: ${stats.avg}, Dot Ball %: ${stats.dot_pct?.toFixed(1)}%, Boundary %: ${stats.boundary_pct?.toFixed(1)}%, Wicket Rate: ${stats.wkt_rate?.toFixed(1)}%
-Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases?.[1]?.sr}, Death SR ${stats.phases?.[2]?.sr}`)
-      .then(text => { setInsight(text); setInsightLoading(false); })
-      .catch(() => { setInsight("AI insight unavailable — make sure Ollama is running."); setInsightLoading(false); });
+Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases?.[1]?.sr}, Death SR ${stats.phases?.[2]?.sr}`;
+
+    generateAIInsight(prompt, (text) => {
+      setInsight(text);
+      setInsightLoading(false);
+    })
+      .then(text => {
+        if (text) {
+          setCachedInsight("analysis", player.ID, fingerprint, text);
+          setCacheStatus("fresh");
+        }
+        setInsightLoading(false);
+      })
+      .catch(() => {
+        setInsight("AI insight unavailable — make sure Ollama is running.");
+        setInsightLoading(false);
+      });
   }, [player?.ID, stats]);
 
   if (!player) return (
@@ -399,16 +597,21 @@ Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases
 
   return (
     <>
-      {/* AI Insight */}
       <div className="ai-card section-gap">
-        <div className="ai-card-title"><Sparkles size={15}/> AI Analysis</div>
+        <div className="ai-card-title">
+          <Sparkles size={15}/> AI Analysis
+          {cacheStatus && !insightLoading && (
+            <span className={`cache-badge ${cacheStatus}`}>
+              {cacheStatus === "hit" ? "✓ cached" : "✦ fresh"}
+            </span>
+          )}
+        </div>
         {insightLoading
           ? <div className="ai-loading"><Sparkles size={13}/><span>Generating insight<span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></span></div>
           : <p className="ai-text">{insight}</p>
         }
       </div>
 
-      {/* Phase performance */}
       <div className="card section-gap">
         <div className="card-title"><span>🕐</span> Phase-Wise Performance vs Spin</div>
         <div style={{ height: 220 }}>
@@ -427,7 +630,6 @@ Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases
         </div>
       </div>
 
-      {/* Additional stats */}
       <div className="grid-3 section-gap">
         {[
           { val: `${stats.boundary_pct.toFixed(1)}%`, lbl: "Boundary %", icon: "💥", color: "#F59E0B" },
@@ -442,7 +644,6 @@ Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases
         ))}
       </div>
 
-      {/* Phase cards */}
       <div className="grid-3 section-gap">
         {stats.phases.map((ph, i) => (
           <div key={ph.phase} className="card" style={{ borderColor: ["rgba(29,111,232,0.25)", "rgba(139,92,246,0.25)", "rgba(245,158,11,0.25)"][i] }}>
@@ -453,7 +654,6 @@ Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases
         ))}
       </div>
 
-      {/* Dot ball analysis */}
       <div className="card">
         <div className="card-title"><span>⚫</span> Ball-by-Ball Breakdown</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
@@ -485,57 +685,87 @@ function PredictionTab({ player, players, stats }) {
   const [pred, setPred] = useState(null);
   const [predInsight, setPredInsight] = useState(null);
   const [predInsightLoading, setPredInsightLoading] = useState(false);
+  const [predCacheStatus, setPredCacheStatus] = useState(null);
 
   useEffect(() => {
     if (!pred || !player) return;
+
+    const fingerprint = buildPredFingerprint(pred);
+    const cached = getCachedInsight("prediction", player.ID, fingerprint);
+
+    if (cached) {
+      setPredInsight(cached);
+      setPredInsightLoading(false);
+      setPredCacheStatus("hit");
+      return;
+    }
+
     setPredInsight(null);
     setPredInsightLoading(true);
-    generateAIInsight(`You are an expert IPL cricket analyst. In 4-5 sentences explain this match prediction and what it means for team strategy. Be specific about bowling tactics, field placements, and match situation.
+    setPredCacheStatus(null);
+
+    const prompt = `You are an expert IPL cricket analyst. In 4-5 sentences explain this match prediction and what it means for team strategy. Be specific about bowling tactics, field placements, and match situation.
 
 Player: ${player.longName} (${player.longBattingStyles})
 Bowling: ${SPIN_TYPES[pred.spin_type]?.label} in ${pred.phase} overs at ${pred.venue}
 Predicted Strike Rate: ${pred.predicted_sr}, Predicted Average: ${pred.predicted_avg}
-Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs: ${pred.expected_runs}, Model Confidence: ${pred.confidence}%`)
-      .then(text => { setPredInsight(text); setPredInsightLoading(false); })
-      .catch(() => { setPredInsight("AI insight unavailable — make sure Ollama is running."); setPredInsightLoading(false); });
+Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs: ${pred.expected_runs}, Model Confidence: ${pred.confidence}%`;
+
+    generateAIInsight(prompt, (text) => {
+      setPredInsight(text);
+      setPredInsightLoading(false);
+    })
+      .then(text => {
+        if (text) {
+          setCachedInsight("prediction", player.ID, fingerprint, text);
+          setPredCacheStatus("fresh");
+        }
+        setPredInsightLoading(false);
+      })
+      .catch(() => {
+        setPredInsight("AI insight unavailable — make sure Ollama is running.");
+        setPredInsightLoading(false);
+      });
   }, [pred]);
 
- const runPrediction = useCallback(async () => {
-  if (!player) return;
-  setLoading(true);
-  setPred(null);
-  try {
-    const statsRes = await fetch(`${API}/player-stats/${player.ID}`);
-    const statsData = statsRes.ok ? await statsRes.json() : {};
-    const batter_features = statsData.batter_features ?? {};
-    const bvs_rows = statsData.batter_vs_spin ?? [];
-    const batter_vs_spin = bvs_rows[0] ?? {};
+  const runPrediction = useCallback(async () => {
+    if (!player) return;
+    setLoading(true);
+    setPred(null);
+    setPredInsight(null);
+    setPredCacheStatus(null);
+    try {
+      const statsRes = await fetch(`${API}/player-stats/${player.ID}`);
+      const statsData = statsRes.ok ? await statsRes.json() : {};
+      const batter_features = statsData.batter_features ?? {};
+      const bvs_rows = statsData.batter_vs_spin ?? [];
+      const batter_vs_spin = bvs_rows[0] ?? {};
 
-    const predRes = await fetch(`${API}/predict`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ player_id: player.ID, spin_type: spinType, phase, venue, batter_features, batter_vs_spin }),
-    });
+      const predRes = await fetch(`${API}/predict`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: player.ID, spin_type: spinType, phase, venue, batter_features, batter_vs_spin }),
+      });
 
-    if (!predRes.ok) throw new Error("Flask error");
-    const result = await predRes.json();
-    if (result.error) throw new Error(result.error);
+      if (!predRes.ok) throw new Error("Flask error");
+      const result = await predRes.json();
+      if (result.error) throw new Error(result.error);
 
-    setPred({
-      predicted_sr:   result.predicted_sr,
-      predicted_avg:  result.predicted_avg,
-      dismissal_prob: result.dismissal_prob,
-      expected_runs:  result.expected_runs ?? parseFloat((result.predicted_avg * (1 - result.dismissal_prob)).toFixed(1)),
-      confidence:     result.confidence,
-      spin_type: spinType, venue, phase,
-    });
-  } catch (err) {
-    console.error("Prediction failed:", err.message);
-    alert("Prediction failed: " + err.message + "\n\nMake sure Flask is running.");
-  } finally {
-    setLoading(false);
-  }
-}, [player, spinType, phase, venue]);
+      setPred({
+        predicted_sr:   result.predicted_sr,
+        predicted_avg:  result.predicted_avg,
+        dismissal_prob: result.dismissal_prob,
+        expected_runs:  result.expected_runs ?? parseFloat((result.predicted_avg * (1 - result.dismissal_prob)).toFixed(1)),
+        confidence:     result.confidence,
+        spin_type: spinType, venue, phase,
+      });
+    } catch (err) {
+      console.error("Prediction failed:", err.message);
+      alert("Prediction failed: " + err.message + "\n\nMake sure Flask is running.");
+    } finally {
+      setLoading(false);
+    }
+  }, [player, spinType, phase, venue]);
 
   if (!player) return (
     <div className="empty-state">
@@ -546,7 +776,6 @@ Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs
 
   return (
     <>
-      {/* Config */}
       <div className="card section-gap">
         <div className="card-title"><span>⚙️</span> Match Configuration</div>
         <div className="grid-2" style={{ marginBottom: 16 }}>
@@ -627,7 +856,6 @@ Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs
             </div>
           </div>
 
-          {/* Comparison chart */}
           <div className="card">
             <div className="card-title"><span>📊</span> Historical vs Predicted</div>
             <div style={{ height: 220 }}>
@@ -648,18 +876,207 @@ Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs
             </div>
           </div>
 
-          {/* AI Prediction Insight */}
           <div className="ai-card section-gap">
-            <div className="ai-card-title"><Sparkles size={15}/> AI Prediction Insight</div>
+            <div className="ai-card-title">
+              <Sparkles size={15}/> AI Prediction Insight
+              {predCacheStatus && !predInsightLoading && (
+                <span className={`cache-badge ${predCacheStatus}`}>
+                  {predCacheStatus === "hit" ? "✓ cached" : "✦ fresh"}
+                </span>
+              )}
+            </div>
             {predInsightLoading
               ? <div className="ai-loading"><Sparkles size={13}/><span>Generating insight<span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></span></div>
               : <p className="ai-text">{predInsight}</p>
             }
           </div>
-
         </>
       )}
     </>
+  );
+}
+
+// ── Spin Type AI Analysis Component ──────────────────────────────────────
+function SpinTypeAIAnalysis({ player, stats }) {
+  const [analysisData, setAnalysisData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [cacheStatus, setCacheStatus] = useState(null);
+
+  const fingerprint = useMemo(() => {
+    if (!stats?.spinComparison) return "";
+    return stats.spinComparison.map(s => `${s.short}:${s.sr}:${s.avg}:${s.dismissalProb}`).join("|");
+  }, [stats]);
+
+  const loadAnalysis = useCallback(async (forceRefresh = false) => {
+    if (!player || !stats?.spinComparison) return;
+
+    if (!forceRefresh) {
+      const cached = getCachedInsight("spintype_analysis", player.ID, fingerprint);
+      if (cached) {
+        try {
+          setAnalysisData(JSON.parse(cached));
+          setCacheStatus("hit");
+          return;
+        } catch {}
+      }
+    }
+
+    setLoading(true);
+    setError(null);
+    setCacheStatus(null);
+
+    try {
+      const result = await generateSpinAnalysis(player, stats, stats.spinComparison);
+      setAnalysisData(result);
+      setCachedInsight("spintype_analysis", player.ID, fingerprint, JSON.stringify(result));
+      setCacheStatus("fresh");
+    } catch (e) {
+      console.error("Spin analysis failed:", e);
+      setError("AI analysis unavailable. Check your API connection.");
+    } finally {
+      setLoading(false);
+    }
+  }, [player, stats, fingerprint]);
+
+  useEffect(() => {
+    if (player && stats?.spinComparison) loadAnalysis(false);
+  }, [player?.ID, fingerprint]);
+
+  const ratingIcon = (r) => {
+    if (r === "strength") return <TrendingUp size={11} />;
+    if (r === "weakness") return <TrendingDown size={11} />;
+    return <ShieldAlert size={11} />;
+  };
+
+  const ratingLabel = { strength: "Strength", neutral: "Neutral", weakness: "Vulnerability" };
+
+  return (
+    <div className="spin-ai-wrap section-gap">
+      <div className="spin-ai-header">
+        <div className="spin-ai-header-left">
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, rgba(139,92,246,0.4), rgba(29,111,232,0.3))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Sparkles size={16} color="#C5B8FF" />
+          </div>
+          <div>
+            <div className="spin-ai-title">Spin Type Breakdown</div>
+            <div className="spin-ai-subtitle">AI-powered weakness & strength analysis per spin type</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {cacheStatus && !loading && (
+            <span className={`cache-badge ${cacheStatus}`}>
+              {cacheStatus === "hit" ? "✓ cached" : "✦ fresh"}
+            </span>
+          )}
+          <button className="regen-btn" onClick={() => loadAnalysis(true)} disabled={loading}>
+            <Sparkles size={11} />
+            {loading ? "Analyzing…" : "Regenerate"}
+          </button>
+        </div>
+      </div>
+
+      <div className="spin-ai-body">
+        {loading && (
+          <>
+            <div className="verdict-box" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <div className="shimmer-line" style={{ width: "90%" }} />
+              <div className="shimmer-line" style={{ width: "75%" }} />
+            </div>
+            <div className="legend-row">
+              {[80, 60, 50].map((w, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div className="shimmer-line" style={{ width: w, height: 10, margin: 0, borderRadius: 10 }} />
+                </div>
+              ))}
+            </div>
+            <div className="spin-type-analysis-grid">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="sta-card neutral" style={{ animationDelay: `${i * 0.08}s` }}>
+                  <div className="shimmer-line" style={{ width: "50%", height: 10 }} />
+                  <div className="shimmer-line" style={{ width: "80%", height: 14 }} />
+                  <div className="shimmer-line" style={{ width: "100%", height: 10 }} />
+                  <div className="shimmer-line" style={{ width: "70%", height: 10 }} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {error && !loading && (
+          <div style={{ padding: "24px", textAlign: "center", color: "#F87171", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        {analysisData && !loading && (
+          <>
+            {/* Overall verdict */}
+            <div className="verdict-box">
+              "{analysisData.overall_verdict}"
+            </div>
+
+            {/* Legend */}
+            <div className="legend-row">
+              {[
+                { color: "#34D399", label: "Strength — comfortable matchup" },
+                { color: "#4F8EF7", label: "Neutral — balanced contest" },
+                { color: "#F87171", label: "Vulnerability — exploit this" },
+              ].map(l => (
+                <div key={l.label} className="legend-item">
+                  <div className="legend-dot" style={{ background: l.color }} />
+                  {l.label}
+                </div>
+              ))}
+            </div>
+
+            {/* Spin type cards grid */}
+            <div className="spin-type-analysis-grid">
+              {analysisData.spin_types?.map((st, i) => {
+                const spinMeta = Object.values(SPIN_TYPES).find(s => s.short === st.short) || Object.values(SPIN_TYPES)[i];
+                return (
+                  <div key={st.short} className={`sta-card ${st.rating}`} style={{ animationDelay: `${i * 0.07}s` }}>
+                    <div className="sta-top">
+                      <div className="sta-left">
+                        <div className="sta-dot" style={{ background: spinMeta?.color || "#4F8EF7" }} />
+                        <div>
+                          <div className="sta-type-name">{st.type}</div>
+                          <div className={`sta-headline ${st.rating}`}>{st.headline}</div>
+                        </div>
+                      </div>
+                      <div className={`sta-rating-badge ${st.rating}`}>
+                        {ratingIcon(st.rating)}
+                        {ratingLabel[st.rating]}
+                      </div>
+                    </div>
+
+                    <div className="sta-detail">{st.detail}</div>
+
+                    <div className={`sta-tip ${st.rating}`}>
+                      <div className="sta-tip-label">🎯 Bowling Tip</div>
+                      {st.bowling_tip}
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div className="sta-key-stat">
+                        📊 {st.key_stat}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#4E5A6E", fontFamily: "'DM Mono', monospace" }}>
+                        {st.confidence}% conf.
+                      </div>
+                    </div>
+
+                    <div className="conf-mini">
+                      <div className={`conf-mini-fill ${st.rating}`} style={{ width: `${st.confidence}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -676,6 +1093,9 @@ function CompareTab({ player, stats }) {
 
   return (
     <>
+      {/* ── NEW: AI Spin Type Analysis ── */}
+      <SpinTypeAIAnalysis player={player} stats={stats} />
+
       <div className="card section-gap">
         <div className="card-title"><span>🔄</span> Strike Rate vs Each Spin Type</div>
         <div style={{ height: 240 }}>
@@ -751,7 +1171,7 @@ export default function App() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [activeTab, setActiveTab] = useState("profile");
   const [loadingPlayers, setLoadingPlayers] = useState(true);
-  const [apiStatus, setApiStatus] = useState("checking"); // "checking" | "connected" | "disconnected"
+  const [apiStatus, setApiStatus] = useState("checking");
 
   useEffect(() => {
     const checkApi = async () => {
@@ -767,31 +1187,27 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Load players from Flask (which reads the CSV)
-useEffect(() => {
-  if (apiStatus !== "connected") return;
-  fetch(`${API}/players`)
-    .then(res => res.json())
-    .then(data => {
-      console.log("Players loaded:", data.length);
-      setPlayers(data);
-      setLoadingPlayers(false);
-    })
-    .catch(err => {
-      console.error("Failed to load players:", err);
-      setLoadingPlayers(false);
-    });
-}, [apiStatus]);
+  useEffect(() => {
+    if (apiStatus !== "connected") return;
+    fetch(`${API}/players`)
+      .then(res => res.json())
+      .then(data => {
+        setPlayers(data);
+        setLoadingPlayers(false);
+      })
+      .catch(() => setLoadingPlayers(false));
+  }, [apiStatus]);
 
-const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState(null);
 
-useEffect(() => {
-  if (!selectedPlayer || apiStatus !== "connected") { setStats(null); return; }
-  fetch(`${API}/player-stats/${selectedPlayer.ID}`)
-    .then(res => res.json())
-    .then(data => data.error ? setStats(null) : setStats(data))
-    .catch(() => setStats(null));
-}, [selectedPlayer, apiStatus]);
+  useEffect(() => {
+    if (!selectedPlayer || apiStatus !== "connected") { setStats(null); return; }
+    fetch(`${API}/player-stats/${selectedPlayer.ID}`)
+      .then(res => res.json())
+      .then(data => data.error ? setStats(null) : setStats(data))
+      .catch(() => setStats(null));
+  }, [selectedPlayer, apiStatus]);
+
   const TAB_TITLES = {
     profile: "Player Profile",
     analysis: "Spin Analysis",
@@ -829,15 +1245,14 @@ useEffect(() => {
             <span className="topbar-badge">Batsman performance against spin</span>
           </div>
           <div className="content">
-            {/* Player selector */}
             <div className="card section-gap">
               <div className="card-title"><span>🏏</span> Select Batter</div>
               {apiStatus === "disconnected"
-  ? <div style={{ color: "#EF4444", fontSize: 13 }}>⚠ Start Flask to load players</div>
-  : apiStatus === "checking" || loadingPlayers
-  ? <div style={{ color: "#4E5A6E", fontSize: 13 }}>Loading players…</div>
-  : <PlayerSearch players={players} selected={selectedPlayer} onSelect={setSelectedPlayer} />
-}
+                ? <div style={{ color: "#EF4444", fontSize: 13 }}>⚠ Start Flask to load players</div>
+                : apiStatus === "checking" || loadingPlayers
+                ? <div style={{ color: "#4E5A6E", fontSize: 13 }}>Loading players…</div>
+                : <PlayerSearch players={players} selected={selectedPlayer} onSelect={setSelectedPlayer} />
+              }
               {selectedPlayer && (
                 <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(29,111,232,0.08)", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
                   <PlayerAvatar player={selectedPlayer} size={28} />
@@ -847,7 +1262,6 @@ useEffect(() => {
               )}
             </div>
 
-            {/* Active tab */}
             {apiStatus === "disconnected" ? (
               <div className="empty-state">
                 <div className="empty-icon">🔌</div>
