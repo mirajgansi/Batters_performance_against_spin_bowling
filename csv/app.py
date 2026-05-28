@@ -36,13 +36,29 @@ def ai_insight():
     data   = request.get_json(force=True)
     prompt = data.get("prompt", "")
     try:
-        res = req.post("http://localhost:11434/api/generate", json={
-            "model":  "llama3.2",
-            "prompt": prompt,
-            "stream": False,
-        })
-        return jsonify({"text": res.json()["response"]})
+        import json
+        def generate():
+            res = req.post("http://localhost:11434/api/generate", json={
+                "model":   "llama3",
+                "prompt":  prompt,
+                "stream":  True,
+                "options": {"num_predict": 150, "temperature": 0.7}
+            }, stream=True, timeout=300)
+            for line in res.iter_lines():
+                if line:
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
+                    done  = chunk.get("done", False)
+                    yield f"data: {json.dumps({'token': token, 'done': done})}\n\n"
+                    if done:
+                        break
+        return app.response_class(
+            generate(),
+            mimetype="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        )
     except Exception as e:
+        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
     
 # ── Load CSVs once at startup ─────────────────────────────────────────────
@@ -140,8 +156,7 @@ def player_stats(player_id):
             {"phase": "Death",     "sr": round(sr * 1.20, 1), "avg": round(avg * 0.75, 1), "balls": round(total_balls * 0.25)},
         ]
 
-    # Spin comparison
- # Spin comparison — calculated from Ball_By_Ball using bowler spin types
+    # Spin comparison — calculated from Ball_By_Ball using bowler spin types
     SPIN_TYPES = [
         ("right-arm offbreak",     "Off-break",   "OB"),
         ("slow left-arm orthodox", "SLA Orthodox", "SLA"),
@@ -349,6 +364,5 @@ def predict():
 def health():
     return jsonify({"status": "ok", "models_loaded": True})
 
-
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, threaded=True)
