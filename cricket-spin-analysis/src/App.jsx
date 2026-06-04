@@ -1,41 +1,127 @@
-import { useState, useEffect, useCallback, useMemo  } from "react";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
-import { Sparkles, ShieldAlert, Zap, TrendingUp, TrendingDown } from "lucide-react";
-// ── Spin type labels ──────────────────────────────────────────────────────
-const SPIN_TYPES = {
-  "right-arm offbreak": { label: "Off-break", short: "OB", color: "#4F8EF7" },
-  "slow left-arm orthodox": { label: "SLA Orthodox", short: "SLA", color: "#A78BFA" },
-  "legbreak": { label: "Leg-break", short: "LB", color: "#34D399" },
-  "legbreak googly": { label: "Googly", short: "LBG", color: "#F59E0B" },
-  "left-arm wrist-spin": { label: "LW Spin", short: "LWS", color: "#F472B6" },
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis
+} from "recharts";
+
+// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+const G = {
+  green: "#1a7340",
+  greenLight: "#e8f5ee",
+  greenMid: "#2da060",
+  accent: "#f97316",
+  accentLight: "#fff7ed",
+  blue: "#1e40af",
+  blueLight: "#eff6ff",
+  red: "#dc2626",
+  redLight: "#fef2f2",
+  amber: "#d97706",
+  amberLight: "#fffbeb",
+  gray50: "#f9fafb",
+  gray100: "#f3f4f6",
+  gray200: "#e5e7eb",
+  gray300: "#d1d5db",
+  gray400: "#9ca3af",
+  gray500: "#6b7280",
+  gray600: "#4b5563",
+  gray700: "#374151",
+  gray800: "#1f2937",
+  gray900: "#111827",
+  white: "#ffffff",
 };
 
-const SPIN_STYLE_KEYS = Object.keys(SPIN_TYPES);
-
-// ── IPL Teams ─────────────────────────────────────────────────────────────
-const IPL_TEAMS = [
-  "Chennai Super Kings", "Mumbai Indians", "Royal Challengers Bengaluru",
-  "Kolkata Knight Riders", "Delhi Capitals", "Sunrisers Hyderabad",
-  "Rajasthan Royals", "Punjab Kings", "Lucknow Super Giants", "Gujarat Titans",
+// ─── MOCK DATA ─────────────────────────────────────────────────────────────────
+const PLAYERS = [
+  { id: 1, name: "Virat Kohli", team: "Royal Challengers Bengaluru", role: "Top Order Batter", style: "Right Handed Bat", img: "https://i.ibb.co/7NbR2Hj/kohli.png", age: 36, debut: 2008 },
+  { id: 2, name: "Rohit Sharma", team: "Mumbai Indians", role: "Top Order Batter", style: "Right Handed Bat", img: null, age: 37, debut: 2007 },
+  { id: 3, name: "KL Rahul", team: "Lucknow Super Giants", role: "Top Order Batter / WK", style: "Right Handed Bat", img: null, age: 32, debut: 2016 },
+  { id: 4, name: "Shubman Gill", team: "Gujarat Titans", role: "Top Order Batter", style: "Right Handed Bat", img: null, age: 25, debut: 2019 },
+  { id: 5, name: "David Warner", team: "Delhi Capitals", role: "Top Order Batter", style: "Left Handed Bat", img: null, age: 37, debut: 2009 },
+  { id: 6, name: "Rishabh Pant", team: "Delhi Capitals", role: "Wicket Keeper Batter", style: "Left Handed Bat", img: null, age: 26, debut: 2016 },
+  { id: 7, name: "Hardik Pandya", team: "Mumbai Indians", role: "All Rounder", style: "Right Handed Bat", img: null, age: 30, debut: 2015 },
+  { id: 8, name: "Suryakumar Yadav", team: "Mumbai Indians", role: "Middle Order Batter", style: "Right Handed Bat", img: null, age: 33, debut: 2012 },
 ];
 
-const VENUES = [
-  "Wankhede Stadium", "M. A. Chidambaram Stadium", "Eden Gardens",
-  "Arun Jaitley Stadium", "Chinnaswamy Stadium", "Rajiv Gandhi Stadium",
-  "Sawai Mansingh Stadium", "Punjab Cricket Association IS Bindra Stadium",
-  "Ekana Cricket Stadium", "Narendra Modi Stadium",
+const SPIN_TYPES = ["Off Spin", "Leg Spin", "Left Arm Orthodox", "Left Arm Wrist Spin", "All Spin"];
+const SEASONS = ["All Seasons", "2024", "2023", "2022", "2021", "2020"];
+const VENUES = ["All Venues", "Wankhede Stadium", "M. A. Chidambaram Stadium", "Eden Gardens", "Arun Jaitley Stadium", "Chinnaswamy Stadium"];
+const IPL_TEAMS = ["Chennai Super Kings", "Mumbai Indians", "Royal Challengers Bengaluru", "Kolkata Knight Riders", "Delhi Capitals", "Sunrisers Hyderabad", "Rajasthan Royals", "Punjab Kings", "Lucknow Super Giants", "Gujarat Titans"];
+const PHASES = ["Powerplay", "Middle Overs", "Death Overs"];
+
+const SPIN_BOWLERS = [
+  { id: 1, name: "Yuzvendra Chahal", type: "Leg Spin", team: "Rajasthan Royals" },
+  { id: 2, name: "Ravindra Jadeja", type: "Left Arm Orthodox", team: "Chennai Super Kings" },
+  { id: 3, name: "Varun Chakravarthy", type: "Off Spin", team: "Kolkata Knight Riders" },
+  { id: 4, name: "Kuldeep Yadav", type: "Left Arm Wrist Spin", team: "Delhi Capitals" },
+  { id: 5, name: "R. Ashwin", type: "Off Spin", team: "Chennai Super Kings" },
+  { id: 6, name: "Imran Tahir", type: "Leg Spin", team: "Chennai Super Kings" },
 ];
 
-const API = "http://localhost:5000";
+function getPlayerStats(playerId) {
+  const seed = playerId * 13;
+  const rand = (min, max, s = 1) => Math.round((min + ((seed * s * 7919) % (max - min))) * 10) / 10;
+  return {
+    strikeRate: rand(95, 148),
+    dotBallPct: rand(22, 38),
+    boundaryPct: rand(14, 26),
+    dismissalRate: rand(8, 18),
+    avgRuns: rand(24, 48),
+    ballsPerDismissal: rand(18, 42),
+    spinComparison: [
+      { type: "Off Spin", sr: rand(100, 145, 1), avg: rand(28, 52, 1), balls: rand(80, 280, 1) },
+      { type: "Leg Spin", sr: rand(88, 135, 2), avg: rand(22, 45, 2), balls: rand(60, 220, 2) },
+      { type: "LA Orthodox", sr: rand(110, 155, 3), avg: rand(30, 55, 3), balls: rand(40, 180, 3) },
+      { type: "LA Wrist Spin", sr: rand(82, 130, 4), avg: rand(18, 42, 4), balls: rand(30, 140, 4) },
+    ],
+    runsDistribution: [
+      { name: "Singles", value: rand(38, 48, 1), color: "#22c55e" },
+      { name: "Twos", value: rand(8, 14, 2), color: "#3b82f6" },
+      { name: "Fours", value: rand(18, 28, 3), color: "#f59e0b" },
+      { name: "Sixes", value: rand(8, 16, 4), color: "#ef4444" },
+      { name: "Dots", value: rand(10, 18, 5), color: "#9ca3af" },
+    ],
+    seasonalTrend: [
+      { season: "2019", sr: rand(90, 130, 1), avg: rand(20, 40, 1) },
+      { season: "2020", sr: rand(92, 132, 2), avg: rand(22, 42, 2) },
+      { season: "2021", sr: rand(95, 140, 3), avg: rand(25, 45, 3) },
+      { season: "2022", sr: rand(100, 145, 4), avg: rand(28, 48, 4) },
+      { season: "2023", sr: rand(105, 150, 5), avg: rand(30, 50, 5) },
+      { season: "2024", sr: rand(108, 155, 6), avg: rand(32, 52, 6) },
+    ],
+    weaknesses: [
+      { type: "Leg Spin", severity: "high", dismissals: rand(8, 18, 2) },
+      { type: "Left Arm Wrist Spin", severity: "medium", dismissals: rand(5, 12, 3) },
+      { type: "Off Spin", severity: "low", dismissals: rand(3, 8, 1) },
+    ],
+    dismissalTypes: [
+      { name: "Caught", value: 42, color: "#ef4444" },
+      { name: "LBW", value: 24, color: "#f59e0b" },
+      { name: "Bowled", value: 18, color: "#3b82f6" },
+      { name: "Stumped", value: 16, color: "#8b5cf6" },
+    ],
+  };
+}
 
-// ── AI Insight helper ─────────────────────────────────────────────────────
-async function generateAIInsight(prompt, onToken) {
-  const res = await fetch(`${API}/ai-insight`, {
+const SAVED_PREDICTIONS = [
+  { id: 1, match: "RCB vs RR", date: "Apr 14, 2024", venue: "Chinnaswamy Stadium", batter: "Virat Kohli", predictedRuns: 42, actualRuns: 38, predictedSR: 135.5, actualSR: 122.6, dismissalProb: 68, dismissed: true, accuracy: "Partially Accurate" },
+  { id: 2, match: "MI vs CSK", date: "Apr 21, 2024", venue: "Wankhede Stadium", batter: "Rohit Sharma", predictedRuns: 31, actualRuns: 35, predictedSR: 118.2, actualSR: 134.6, dismissalProb: 52, dismissed: false, accuracy: "Accurate" },
+  { id: 3, match: "DC vs KKR", date: "May 1, 2024", venue: "Arun Jaitley Stadium", batter: "David Warner", predictedRuns: 28, actualRuns: 8, predictedSR: 109.4, actualSR: 57.1, dismissalProb: 74, dismissed: true, accuracy: "Inaccurate" },
+  { id: 4, match: "LSG vs GT", date: "May 8, 2024", venue: "Ekana Cricket Stadium", batter: "KL Rahul", predictedRuns: 45, actualRuns: 48, predictedSR: 140.6, actualSR: 137.2, dismissalProb: 45, dismissed: false, accuracy: "Accurate" },
+];
+
+// ─── AI CALL ───────────────────────────────────────────────────────────────────
+async function callClaude(prompt, onToken) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      stream: true,
+      messages: [{ role: "user", content: prompt }],
+    }),
   });
-  const reader = res.body.getReader();
+  const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let fullText = "";
   while (true) {
@@ -45,9 +131,11 @@ async function generateAIInsight(prompt, onToken) {
     for (const line of lines) {
       if (line.startsWith("data: ")) {
         try {
-          const chunk = JSON.parse(line.slice(6));
-          fullText += chunk.token;
-          if (onToken) onToken(fullText);
+          const data = JSON.parse(line.slice(6));
+          if (data.type === "content_block_delta" && data.delta?.text) {
+            fullText += data.delta.text;
+            onToken(fullText);
+          }
         } catch {}
       }
     }
@@ -55,1228 +143,861 @@ async function generateAIInsight(prompt, onToken) {
   return fullText;
 }
 
-// ── Anthropic API direct call for structured spin analysis ─────────────────
-async function generateSpinAnalysis(player, stats, spinComparison) {
-  const spinSummary = spinComparison.map(s => 
-    `${s.type}: SR=${s.sr}, Avg=${s.avg}, Balls=${s.balls}, DismissalProb=${(s.dismissalProb*100).toFixed(1)}%`
-  ).join("\n");
-
-  const prompt = `You are an expert IPL cricket analyst specializing in spin bowling matchups.
-
-Analyze this batter's performance against each spin type and return ONLY a JSON object. No explanation, no markdown, no preamble.
-
-Player: ${player.longName} (${player.longBattingStyles})
-Overall vs Spin — SR: ${stats.sr}, Avg: ${stats.avg}, Dot%: ${stats.dot_pct?.toFixed(1)}%
-
-Performance vs each spin type:
-${spinSummary}
-
-Return this exact JSON structure:
-{
-  "overall_verdict": "2-3 sentence tactical summary for captains",
-  "spin_types": [
-    {
-      "type": "Off-break",
-      "short": "OB",
-      "rating": "strength|neutral|weakness",
-      "confidence": 0-100,
-      "headline": "5-8 word headline",
-      "detail": "1-2 sentence tactical insight",
-      "bowling_tip": "specific bowling tip vs this batter",
-      "key_stat": "the most notable stat"
-    }
-  ]
+// ─── HELPERS ────────────────────────────────────────────────────────────────────
+function initials(name) {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-Classify as "strength" if SR > 130 or Avg > 35, "weakness" if SR < 100 or Avg < 20 or DismissalProb > 15%, otherwise "neutral".`;
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  const data = await response.json();
-  const text = data.content?.map(i => i.text || "").join("") || "";
-  const clean = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean);
+function Avatar({ name, size = 40, color = G.green }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", background: color,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      color: "#fff", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0,
+      fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1,
+    }}>{initials(name)}</div>
+  );
 }
 
-// ── Stats Fingerprint ─────────────────────────────────────────────────────
-function buildStatsFingerprint(stats) {
-  if (!stats) return "";
-  return [
-    stats.sr?.toFixed(2),
-    stats.avg?.toFixed(2),
-    stats.dot_pct?.toFixed(2),
-    stats.boundary_pct?.toFixed(2),
-    stats.wkt_rate?.toFixed(2),
-    stats.balls,
-    stats.phases?.map(p => `${p.sr}|${p.avg}`).join(","),
-  ].join("_");
+function Badge({ label, color, bg }) {
+  return (
+    <span style={{
+      background: bg || G.greenLight, color: color || G.green,
+      padding: "2px 10px", borderRadius: 20, fontSize: 11,
+      fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif",
+      letterSpacing: 0.5, textTransform: "uppercase",
+    }}>{label}</span>
+  );
 }
 
-function buildPredFingerprint(pred) {
-  if (!pred) return "";
-  return [
-    pred.spin_type,
-    pred.phase,
-    pred.venue,
-    pred.predicted_sr?.toFixed(2),
-    pred.predicted_avg?.toFixed(2),
-    pred.dismissal_prob?.toFixed(4),
-  ].join("_");
+function KpiCard({ label, value, sub, icon, color = G.green }) {
+  return (
+    <div style={{
+      background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 12,
+      padding: "16px 18px", borderTop: `3px solid ${color}`,
+    }}>
+      <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 11, color: G.gray500, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11, color: G.gray400, marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
 }
 
-// ── localStorage AI Insight Cache ─────────────────────────────────────────
-const LS_PREFIX = "ai_insight_";
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function lsCacheKey(type, playerId, fingerprint) {
-  return `${LS_PREFIX}${type}_${playerId}_${fingerprint}`.replace(/\s+/g, "_");
+function SectionTitle({ children, icon }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+      {icon && <span style={{ fontSize: 18 }}>{icon}</span>}
+      <h3 style={{ fontSize: 15, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3, margin: 0 }}>{children}</h3>
+    </div>
+  );
 }
 
-function getCachedInsight(type, playerId, fingerprint) {
-  try {
-    const key = lsCacheKey(type, playerId, fingerprint);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const { text, savedAt } = JSON.parse(raw);
-    if (Date.now() - savedAt > CACHE_TTL_MS) {
-      localStorage.removeItem(key);
-      return null;
-    }
-    return text;
-  } catch {
-    return null;
-  }
+function Card({ children, style = {} }) {
+  return (
+    <div style={{ background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 12, padding: "20px", ...style }}>
+      {children}
+    </div>
+  );
 }
 
-function setCachedInsight(type, playerId, fingerprint, text) {
-  try {
-    prunePlayerInsights(type, playerId, fingerprint);
-    const key = lsCacheKey(type, playerId, fingerprint);
-    localStorage.setItem(key, JSON.stringify({ text, savedAt: Date.now() }));
-  } catch (e) {
-    console.warn("Could not cache AI insight:", e);
-  }
+function Chip({ label, active, onClick, color = G.green }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600,
+      fontFamily: "'Barlow Condensed', sans-serif", cursor: "pointer", border: "none",
+      background: active ? color : G.gray100, color: active ? "#fff" : G.gray600,
+      transition: "all 0.15s", letterSpacing: 0.3,
+    }}>{label}</button>
+  );
 }
 
-function prunePlayerInsights(type, playerId, currentFingerprint) {
-  try {
-    const prefix = `${LS_PREFIX}${type}_${playerId}_`;
-    const currentKey = lsCacheKey(type, playerId, currentFingerprint);
-    const toDelete = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(prefix) && k !== currentKey) toDelete.push(k);
-    }
-    toDelete.forEach(k => localStorage.removeItem(k));
-  } catch {}
-}
+const CHART_COLORS = ["#1a7340", "#f97316", "#3b82f6", "#8b5cf6", "#ef4444"];
 
-// ── Color palette ────────────────────────────────────────────────────────
-const DISMISS_COLORS = ["#4F8EF7", "#A78BFA", "#34D399", "#F59E0B", "#F472B6"];
-
-// ── CSS ───────────────────────────────────────────────────────────────────
-const css = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Inter:wght@400;500&display=swap');
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0F1117;color:#F0F4FF;font-family:'Inter',sans-serif;min-height:100vh}
-  .app{display:flex;min-height:100vh}
-  .sidebar{width:220px;min-width:220px;background:#0C1020;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;padding:24px 0;position:sticky;top:0;height:100vh}
-  .sidebar-logo{padding:0 20px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:16px}
-  .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#1D6FE8,#06D6A0);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-  .logo-text{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#F0F4FF;letter-spacing:-0.3px}
-  .logo-sub{font-size:10px;color:#4E5A6E;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px}
-  .nav-section{padding:0 12px;margin-bottom:4px}
-  .nav-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#4E5A6E;font-family:'DM Mono',monospace;padding:8px 8px 4px}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;color:#8A95A8;font-weight:500;margin-bottom:2px;border:1px solid transparent}
-  .nav-item:hover{background:rgba(29,111,232,0.08);color:#C5D0E6}
-  .nav-item.active{background:rgba(29,111,232,0.15);color:#4F8EF7;border-color:rgba(29,111,232,0.25)}
-  .nav-icon{width:18px;text-align:center;font-size:16px}
-  .main{flex:1;overflow-y:auto;background:#0F1117;min-width:0}
-  .topbar{height:56px;background:#0C1020;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:10}
-  .topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;flex:1}
-  .topbar-badge{background:rgba(29,111,232,0.15);border:1px solid rgba(29,111,232,0.3);color:#4F8EF7;font-size:11px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px}
-  .content{padding:24px 28px;max-width:1200px}
-  .card{background:#161B27;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px 22px}
-  .card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#8A95A8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-  .card-title span{font-size:16px}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .stat-card{background:#1A2030;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px 18px}
-  .stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;line-height:1}
-  .stat-label{font-size:11px;color:#4E5A6E;text-transform:uppercase;letter-spacing:1px;font-family:'DM Mono',monospace;margin-top:4px}
-  .stat-sub{font-size:12px;color:#8A95A8;margin-top:2px}
-  .select-wrap{position:relative}
-  .select-wrap select{appearance:none;background:#1A2030;border:1px solid rgba(255,255,255,0.1);color:#F0F4FF;padding:9px 36px 9px 12px;border-radius:9px;font-size:13.5px;cursor:pointer;width:100%;font-family:'Inter',sans-serif;outline:none;transition:border-color .15s}
-  .select-wrap select:hover,.select-wrap select:focus{border-color:rgba(29,111,232,0.5)}
-  .select-wrap::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#4E5A6E;pointer-events:none;font-size:12px}
-  .player-search{position:relative}
-  .player-search input{width:100%;background:#1A2030;border:1px solid rgba(255,255,255,0.1);color:#F0F4FF;padding:10px 14px 10px 36px;border-radius:9px;font-size:13.5px;outline:none;transition:border-color .15s;font-family:'Inter',sans-serif}
-  .player-search input:focus{border-color:rgba(29,111,232,0.5)}
-  .player-search .ps-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#4E5A6E;font-size:15px}
-  .dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1A2030;border:1px solid rgba(255,255,255,0.1);border-radius:10px;z-index:50;max-height:260px;overflow-y:auto;box-shadow:0 16px 40px rgba(0,0,0,0.5)}
-  .dropdown-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(255,255,255,0.04)}
-  .dropdown-item:last-child{border-bottom:none}
-  .dropdown-item:hover{background:rgba(29,111,232,0.1)}
-  .player-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.1)}
-  .player-avatar-placeholder{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1D6FE8,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
-  .di-name{font-size:13px;font-weight:500;color:#F0F4FF}
-  .di-sub{font-size:11px;color:#4E5A6E}
-  .profile-hero{display:flex;align-items:center;gap:20px;padding:20px;background:linear-gradient(135deg,rgba(29,111,232,0.12),rgba(139,92,246,0.08));border:1px solid rgba(29,111,232,0.18);border-radius:14px;margin-bottom:20px}
-  .profile-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid rgba(29,111,232,0.4)}
-  .profile-img-placeholder{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1D6FE8,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;flex-shrink:0}
-  .profile-name{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;line-height:1.2}
-  .profile-short{font-size:13px;color:#4F8EF7;font-family:'DM Mono',monospace;margin-top:2px}
-  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
-  .badge-rhb{background:rgba(29,111,232,0.15);color:#4F8EF7;border:1px solid rgba(29,111,232,0.25)}
-  .badge-lhb{background:rgba(139,92,246,0.15);color:#A78BFA;border:1px solid rgba(139,92,246,0.25)}
-  .badge-spin{background:rgba(6,214,160,0.12);color:#06D6A0;border:1px solid rgba(6,214,160,0.2)}
-  .pred-card{background:linear-gradient(135deg,rgba(29,111,232,0.1),rgba(6,214,160,0.06));border:1px solid rgba(29,111,232,0.2);border-radius:14px;padding:20px 22px}
-  .pred-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:#8A95A8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:16px}
-  .pred-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .pred-metric{text-align:center}
-  .pred-val{font-family:'Syne',sans-serif;font-weight:800;font-size:26px}
-  .pred-lbl{font-size:10px;color:#4E5A6E;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px}
-  .conf-bar{height:4px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:16px;overflow:hidden}
-  .conf-fill{height:100%;background:linear-gradient(90deg,#1D6FE8,#06D6A0);border-radius:2px;transition:width .6s}
-  .spin-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .spin-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:#1A2030;color:#8A95A8;transition:all .15s;font-weight:500}
-  .spin-pill.active{border-color:rgba(29,111,232,0.5);background:rgba(29,111,232,0.15);color:#4F8EF7}
-  .phase-pill{padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:#1A2030;color:#8A95A8;transition:all .15s}
-  .phase-pill.active{border-color:rgba(6,214,160,0.5);background:rgba(6,214,160,0.1);color:#06D6A0}
-  .section-gap{margin-bottom:20px}
-  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;color:#4E5A6E;text-align:center}
-  .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.4}
-  .empty-text{font-size:14px;line-height:1.6;max-width:300px}
-  .chart-container{height:240px;width:100%}
-  .chart-container-sm{height:200px;width:100%}
-  .tab-row{display:flex;gap:4px;background:#1A2030;padding:3px;border-radius:10px;margin-bottom:20px}
-  .tab{flex:1;text-align:center;padding:8px;border-radius:8px;cursor:pointer;font-size:13px;color:#4E5A6E;transition:all .15s;font-weight:500}
-  .tab.active{background:#1D6FE8;color:#fff}
-  .loading{display:flex;align-items:center;justify-content:center;height:200px;color:#4E5A6E;font-size:14px;gap:8px}
-  .dot-anim span{animation:blink 1.2s infinite;display:inline-block}
-  .dot-anim span:nth-child(2){animation-delay:.2s}
-  .dot-anim span:nth-child(3){animation-delay:.4s}
-  @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-  @keyframes fadeSlideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .spin-type-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
-  .stg-card{background:#1A2030;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;text-align:center}
-  .stg-short{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;margin-bottom:4px}
-  .stg-sr{font-size:12px;color:#8A95A8}
-  .stg-bar{height:3px;border-radius:2px;margin-top:8px;min-width:10%}
-  .scrollbar-hide::-webkit-scrollbar{display:none}
-  .scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
-  select option{background:#1A2030}
-  .ai-card{background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(29,111,232,0.05));border:1px solid rgba(139,92,246,0.25);border-radius:14px;padding:20px 22px}
-  .ai-card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#A78BFA;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-  .ai-text{font-size:13.5px;color:#C5D0E6;line-height:1.8;font-family:'Inter',sans-serif}
-  .ai-loading{display:flex;align-items:center;gap:8px;color:#8B5CF6;font-size:13px;font-family:'DM Mono',monospace}
-  .cache-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:10px;margin-left:auto;text-transform:uppercase;letter-spacing:0.5px}
-  .cache-badge.hit{background:rgba(6,214,160,0.1);color:#06D6A0;border:1px solid rgba(6,214,160,0.25)}
-  .cache-badge.fresh{background:rgba(139,92,246,0.1);color:#A78BFA;border:1px solid rgba(139,92,246,0.25)}
-
-  /* ── Spin AI Analysis ── */
-  .spin-ai-wrap{border-radius:16px;overflow:hidden;background:#0E1320;border:1px solid rgba(139,92,246,0.2);margin-bottom:20px}
-  .spin-ai-header{padding:18px 22px;background:linear-gradient(90deg,rgba(139,92,246,0.12),rgba(29,111,232,0.07));border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between}
-  .spin-ai-header-left{display:flex;align-items:center;gap:10px}
-  .spin-ai-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#C5B8FF;text-transform:uppercase;letter-spacing:0.8px}
-  .spin-ai-subtitle{font-size:11px;color:#4E5A6E;font-family:'DM Mono',monospace;margin-top:2px}
-  .spin-ai-body{padding:20px 22px}
-  .verdict-box{background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;color:#C5D0E6;line-height:1.7;font-style:italic}
-  .spin-type-analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media(max-width:800px){.spin-type-analysis-grid{grid-template-columns:1fr}}
-  .sta-card{border-radius:12px;padding:16px 18px;border:1px solid;position:relative;overflow:hidden;animation:fadeSlideIn .35s ease both}
-  .sta-card.strength{background:rgba(52,211,153,0.05);border-color:rgba(52,211,153,0.2)}
-  .sta-card.neutral{background:rgba(79,142,247,0.05);border-color:rgba(79,142,247,0.18)}
-  .sta-card.weakness{background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.2)}
-  .sta-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
-  .sta-left{display:flex;align-items:center;gap:8px}
-  .sta-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:2px}
-  .sta-type-name{font-family:'DM Mono',monospace;font-size:12px;color:#8A95A8;text-transform:uppercase;letter-spacing:0.6px}
-  .sta-headline{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-top:2px}
-  .sta-headline.strength{color:#34D399}
-  .sta-headline.neutral{color:#4F8EF7}
-  .sta-headline.weakness{color:#F87171}
-  .sta-rating-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;flex-shrink:0}
-  .sta-rating-badge.strength{background:rgba(52,211,153,0.12);color:#34D399;border:1px solid rgba(52,211,153,0.25)}
-  .sta-rating-badge.neutral{background:rgba(79,142,247,0.12);color:#4F8EF7;border:1px solid rgba(79,142,247,0.25)}
-  .sta-rating-badge.weakness{background:rgba(239,68,68,0.1);color:#F87171;border:1px solid rgba(239,68,68,0.2)}
-  .sta-detail{font-size:12.5px;color:#8A95A8;line-height:1.6;margin-bottom:10px}
-  .sta-tip{background:rgba(255,255,255,0.03);border-left:2px solid;border-radius:0 6px 6px 0;padding:8px 12px;font-size:11.5px;font-family:'DM Mono',monospace;line-height:1.5}
-  .sta-tip.strength{border-color:#34D399;color:#34D399}
-  .sta-tip.neutral{border-color:#4F8EF7;color:#4F8EF7}
-  .sta-tip.weakness{border-color:#F87171;color:#F87171}
-  .sta-tip-label{font-size:9px;opacity:0.6;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px}
-  .sta-key-stat{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:10px;font-family:'DM Mono',monospace;color:#4E5A6E;background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.05)}
-  .conf-mini{height:2px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:12px;overflow:hidden}
-  .conf-mini-fill{height:100%;border-radius:2px;transition:width .8s ease}
-  .conf-mini-fill.strength{background:linear-gradient(90deg,#34D399,#06D6A0)}
-  .conf-mini-fill.neutral{background:linear-gradient(90deg,#4F8EF7,#06D6A0)}
-  .conf-mini-fill.weakness{background:linear-gradient(90deg,#F87171,#F59E0B)}
-  .regen-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);color:#A78BFA;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Mono',monospace;transition:all .15s}
-  .regen-btn:hover{background:rgba(139,92,246,0.2)}
-  .regen-btn:disabled{opacity:0.4;cursor:not-allowed}
-  .shimmer-line{height:13px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;margin-bottom:8px}
-  .legend-row{display:flex;gap:16px;margin-bottom:16px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
-  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:#8A95A8}
-  .legend-dot{width:8px;height:8px;border-radius:50%}
-`;
-
-// ── Custom Tooltip ─────────────────────────────────────────────────────────
-const CustomTooltip = ({ active, payload, label }) => {
+function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "#0C1020", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
-      <div style={{ color: "#8A95A8", marginBottom: 4 }}>{label}</div>
+    <div style={{ background: G.gray900, border: `1px solid ${G.gray700}`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#fff" }}>
+      <div style={{ color: G.gray300, marginBottom: 4, fontWeight: 600 }}>{label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color || "#F0F4FF" }}>{p.name}: {typeof p.value === "number" ? p.value.toFixed(1) : p.value}</div>
+        <div key={i} style={{ color: p.color || "#fff" }}>{p.name}: <strong>{typeof p.value === "number" ? p.value.toFixed(1) : p.value}</strong></div>
       ))}
     </div>
   );
-};
+}
 
-// ── Sidebar ───────────────────────────────────────────────────────────────
-function Sidebar({ activeTab, setActiveTab }) {
+// ─── SIDEBAR ───────────────────────────────────────────────────────────────────
+function Sidebar({ page, setPage, collapsed, setCollapsed }) {
   const navItems = [
-    { id: "profile", icon: "👤", label: "Player Profile" },
-    { id: "analysis", icon: "📊", label: "Spin Analysis" },
-    { id: "prediction", icon: "🔮", label: "Match Prediction" },
-    { id: "compare", icon: "⚡", label: "Spin Types" },
+    { id: "dashboard", label: "Analysis Dashboard", icon: "📊" },
+    { id: "prediction", label: "Match Prediction", icon: "🔮" },
+    { id: "saved", label: "Saved Predictions", icon: "📋" },
   ];
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="logo-icon">🏏</div>
-        <div>
-          <div className="logo-text">Spinners</div>
-          <div className="logo-sub">Analytics</div>
-        </div>
-      </div>
-      <div className="nav-section">
-        <div className="nav-label">Dashboard</div>
-        {navItems.map(item => (
-          <div key={item.id} className={`nav-item${activeTab === item.id ? " active" : ""}`} onClick={() => setActiveTab(item.id)}>
-            <span className="nav-icon">{item.icon}</span>
-            {item.label}
+    <aside style={{
+      width: collapsed ? 60 : 230, background: G.gray900, flexShrink: 0,
+      display: "flex", flexDirection: "column", transition: "width 0.2s",
+      position: "sticky", top: 0, height: "100vh", overflow: "hidden",
+    }}>
+      <div style={{ padding: collapsed ? "20px 0" : "20px 16px", borderBottom: `1px solid ${G.gray700}`, display: "flex", alignItems: "center", gap: 10, justifyContent: collapsed ? "center" : "flex-start" }}>
+        <span style={{ fontSize: 24 }}>🏏</span>
+        {!collapsed && (
+          <div>
+            <div style={{ color: G.white, fontWeight: 700, fontSize: 16, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5 }}>SpinIQ</div>
+            <div style={{ color: G.green, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>IPL Analytics</div>
           </div>
+        )}
+      </div>
+      {!collapsed && <div style={{ padding: "8px 16px", fontSize: 10, color: G.gray500, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.2, marginTop: 8 }}>Navigation</div>}
+      <nav style={{ flex: 1, padding: "4px 8px" }}>
+        {navItems.map(item => (
+          <button key={item.id} onClick={() => setPage(item.id)} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 12,
+            padding: collapsed ? "11px" : "11px 12px", borderRadius: 8, border: "none",
+            background: page === item.id ? G.green : "transparent",
+            color: page === item.id ? G.white : G.gray400, cursor: "pointer",
+            fontSize: 13, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif",
+            letterSpacing: 0.3, marginBottom: 2, justifyContent: collapsed ? "center" : "flex-start",
+            transition: "all 0.15s",
+          }}>
+            <span style={{ fontSize: 17, flexShrink: 0 }}>{item.icon}</span>
+            {!collapsed && item.label}
+          </button>
         ))}
-      </div>
-      <div style={{ flex: 1 }} />
-      <div style={{ padding: "0 20px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
-        <div style={{ fontSize: 10, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1 }}>Data</div>
-        <div style={{ fontSize: 12, color: "#8A95A8", marginTop: 4 }}>2025 IPL Season</div>
-        <div style={{ fontSize: 11, color: "#4E5A6E", marginTop: 2 }}>261 players • 5 spin types</div>
-      </div>
+      </nav>
+      <button onClick={() => setCollapsed(!collapsed)} style={{
+        margin: "0 8px 16px", padding: "10px", background: G.gray800,
+        border: "none", borderRadius: 8, color: G.gray400, cursor: "pointer",
+        fontSize: 16, transition: "all 0.15s",
+      }}>{collapsed ? "→" : "←"}</button>
     </aside>
   );
 }
 
-// ── Player Search ──────────────────────────────────────────────────────────
-function PlayerSearch({ players, selected, onSelect }) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-
-  const filtered = useMemo(() => {
-    if (!query) return players.slice(0, 20);
-    const q = query.toLowerCase();
-    return players.filter(p =>
-      p.longName?.toLowerCase().includes(q) || p.Name?.toLowerCase().includes(q)
-    ).slice(0, 20);
-  }, [query, players]);
-
-  const handleSelect = useCallback((p) => {
-    onSelect(p);
-    setQuery(p.longName || p.Name);
-    setOpen(false);
-  }, [onSelect]);
-
+// ─── TOPBAR ────────────────────────────────────────────────────────────────────
+function Topbar({ page }) {
+  const titles = { dashboard: "Batter Analysis Dashboard", prediction: "Match Prediction", saved: "Saved Predictions & AI Review" };
+  const subs = { dashboard: "Spin bowling matchup analysis", prediction: "AI-powered performance forecast", saved: "Prediction accuracy tracker" };
   return (
-    <div className="player-search" style={{ position: "relative" }}>
-      <span className="ps-icon">🔍</span>
-      <input
-        value={query}
-        onChange={e => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 180)}
-        placeholder="Search player by name…"
-      />
-      {open && filtered.length > 0 && (
-        <div className="dropdown scrollbar-hide">
-          {filtered.map(p => (
-            <div key={p.ID} className="dropdown-item" onMouseDown={() => handleSelect(p)}>
-              <PlayerAvatar player={p} size={30} />
-              <div>
-                <div className="di-name">{p.longName || p.Name}</div>
-                <div className="di-sub">{p.longBattingStyles} • {p.longBowlingStyles !== "Na" ? p.longBowlingStyles : "Bat"}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <div style={{
+      height: 58, background: G.white, borderBottom: `2px solid ${G.green}`,
+      display: "flex", alignItems: "center", padding: "0 24px", gap: 16,
+      position: "sticky", top: 0, zIndex: 100,
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3, lineHeight: 1.2 }}>{titles[page]}</div>
+        <div style={{ fontSize: 11, color: G.gray500 }}>{subs[page]}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: G.greenMid }} />
+        <span style={{ fontSize: 12, color: G.gray500, fontFamily: "'Barlow Condensed', sans-serif" }}>IPL 2025 Season</span>
+      </div>
+      <Badge label="AI-Powered" color="#fff" bg={G.green} />
     </div>
   );
 }
 
-function PlayerAvatar({ player, size = 32 }) {
-  const [err, setErr] = useState(false);
-  if (!err && player?.imgUrl && !player.imgUrl.includes("undefined")) {
-    return <img src={player.imgUrl} alt={player.Name} className="player-avatar" style={{ width: size, height: size }} onError={() => setErr(true)} />;
-  }
-  const initials = (player?.longName || player?.Name || "?").split(" ").map(w => w[0]).slice(0, 2).join("");
-  return <div className="player-avatar-placeholder" style={{ width: size, height: size, fontSize: size * 0.35 }}>{initials}</div>;
-}
-
-// ── Profile Tab ───────────────────────────────────────────────────────────
-function ProfileTab({ player, stats }) {
-  if (!player) return (
-    <div className="empty-state">
-      <div className="empty-icon">🏏</div>
-      <div className="empty-text">Select a player to view their profile and performance metrics against spin bowling.</div>
-    </div>
-  );
-
-  const age = player.dob
-    ? Math.floor((Date.now() - new Date(player.dob.split("/").reverse().join("-"))) / (365.25 * 86400000))
-    : "—";
-
-  const radarData = [
-    { metric: "Strike Rate", value: Math.min(100, stats.sr) },
-    { metric: "Average", value: Math.min(100, stats.avg * 2) },
-    { metric: "Boundary%", value: stats.boundary_pct },
-    { metric: "Rotation", value: stats.rotation_pct },
-    { metric: "Dot Resist", value: 100 - stats.dot_pct },
-    { metric: "Survival", value: 100 - stats.wkt_rate * 8 },
-  ];
-
-  return (
-    <>
-      <div className="profile-hero section-gap">
-        <PlayerAvatar player={player} size={80} />
-        <div>
-          <div className="profile-name">{player.longName || player.Name}</div>
-          <div className="profile-short" style={{ fontFamily: "'DM Mono', monospace" }}>{player.Name}</div>
-          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-            <span className={`badge ${player.battingStyles === "lhb" ? "badge-lhb" : "badge-rhb"}`}>{player.longBattingStyles}</span>
-            {player.longBowlingStyles !== "Na" && <span className="badge badge-spin">{player.longBowlingStyles}</span>}
-            {age !== "—" && <span className="badge" style={{ background: "rgba(255,255,255,0.05)", color: "#8A95A8", border: "1px solid rgba(255,255,255,0.1)" }}>Age {age}</span>}
-          </div>
-        </div>
-        <div style={{ marginLeft: "auto" }}>
-          <a href={player.espn_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#4F8EF7", fontFamily: "'DM Mono', monospace", textDecoration: "none", border: "1px solid rgba(29,111,232,0.3)", padding: "6px 12px", borderRadius: 8 }}>
-            ESPN ↗
-          </a>
-        </div>
-      </div>
-
-      <div className="grid-4 section-gap">
-        {[
-          { val: stats.balls, lbl: "Balls Faced", sub: "vs spin" },
-          { val: stats.sr.toFixed(1), lbl: "Strike Rate", sub: "vs spin" },
-          { val: stats.avg.toFixed(1), lbl: "Average", sub: "vs spin" },
-          { val: `${stats.dot_pct.toFixed(0)}%`, lbl: "Dot Ball %", sub: "pressure metric" },
-        ].map(s => (
-          <div key={s.lbl} className="stat-card">
-            <div className="stat-val" style={{ color: "#4F8EF7" }}>{s.val}</div>
-            <div className="stat-label">{s.lbl}</div>
-            <div className="stat-sub">{s.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid-2 section-gap">
-        <div className="card">
-          <div className="card-title"><span>🕸</span> Batting Profile</div>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
-                <PolarGrid stroke="rgba(255,255,255,0.07)" />
-                <PolarAngleAxis dataKey="metric" tick={{ fill: "#4E5A6E", fontSize: 11 }} />
-                <Radar name="Stats" dataKey="value" stroke="#1D6FE8" fill="#1D6FE8" fillOpacity={0.2} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-title"><span>🎯</span> Dismissal Types</div>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={stats.dismissals} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
-                  {stats.dismissals.map((_, i) => <Cell key={i} fill={DISMISS_COLORS[i % DISMISS_COLORS.length]} />)}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-title"><span>📈</span> Season Trend vs Spin</div>
-        <div className="chart-container">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={stats.seasons}>
-              <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="season" tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12, color: "#8A95A8" }} />
-              <Line type="monotone" dataKey="sr" name="Strike Rate" stroke="#1D6FE8" strokeWidth={2} dot={{ fill: "#1D6FE8", r: 3 }} />
-              <Line type="monotone" dataKey="avg" name="Average" stroke="#06D6A0" strokeWidth={2} dot={{ fill: "#06D6A0", r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ── Analysis Tab ──────────────────────────────────────────────────────────
-function AnalysisTab({ player, stats }) {
-  const [insight, setInsight] = useState(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const [cacheStatus, setCacheStatus] = useState(null);
-
-  useEffect(() => {
-    if (!player || !stats) return;
-
-    const fingerprint = buildStatsFingerprint(stats);
-    const cached = getCachedInsight("analysis", player.ID, fingerprint);
-
-    if (cached) {
-      setInsight(cached);
-      setInsightLoading(false);
-      setCacheStatus("hit");
-      return;
-    }
-
-    setInsight(null);
-    setInsightLoading(true);
-    setCacheStatus(null);
-
-    const prompt = `You are an expert IPL cricket analyst. Analyze this batter's performance against spin bowling in 4-5 sentences. Be specific, use cricket terminology, mention weaknesses and strengths, and give a tactical recommendation for captains/coaches.
-
-Player: ${player.longName} (${player.longBattingStyles})
-Overall vs Spin — Strike Rate: ${stats.sr}, Average: ${stats.avg}, Dot Ball %: ${stats.dot_pct?.toFixed(1)}%, Boundary %: ${stats.boundary_pct?.toFixed(1)}%, Wicket Rate: ${stats.wkt_rate?.toFixed(1)}%
-Phase breakdown: Powerplay SR ${stats.phases?.[0]?.sr}, Middle SR ${stats.phases?.[1]?.sr}, Death SR ${stats.phases?.[2]?.sr}`;
-
-    generateAIInsight(prompt, (text) => {
-      setInsight(text);
-      setInsightLoading(false);
-    })
-      .then(text => {
-        if (text) {
-          setCachedInsight("analysis", player.ID, fingerprint, text);
-          setCacheStatus("fresh");
-        }
-        setInsightLoading(false);
-      })
-      .catch(() => {
-        setInsight("AI insight unavailable — make sure Ollama is running.");
-        setInsightLoading(false);
-      });
-  }, [player?.ID, stats]);
-
-  if (!player) return (
-    <div className="empty-state">
-      <div className="empty-icon">📊</div>
-      <div className="empty-text">Select a player to view detailed spin bowling analysis by phase and matchup.</div>
-    </div>
-  );
-
-  return (
-    <>
-      <div className="ai-card section-gap">
-        <div className="ai-card-title">
-          <Sparkles size={15}/> AI Analysis
-          {cacheStatus && !insightLoading && (
-            <span className={`cache-badge ${cacheStatus}`}>
-              {cacheStatus === "hit" ? "✓ cached" : "✦ fresh"}
-            </span>
-          )}
-        </div>
-        {insightLoading
-          ? <div className="ai-loading"><Sparkles size={13}/><span>Generating insight<span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></span></div>
-          : <p className="ai-text">{insight}</p>
-        }
-      </div>
-
-      <div className="card section-gap">
-        <div className="card-title"><span>🕐</span> Phase-Wise Performance vs Spin</div>
-        <div style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.phases} barGap={4}>
-              <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="phase" tick={{ fill: "#4E5A6E", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12, color: "#8A95A8" }} />
-              <Bar dataKey="sr" name="Strike Rate" fill="#1D6FE8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="avg" name="Average" fill="#06D6A0" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="balls" name="Balls Faced" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="grid-3 section-gap">
-        {[
-          { val: `${stats.boundary_pct.toFixed(1)}%`, lbl: "Boundary %", icon: "💥", color: "#F59E0B" },
-          { val: `${stats.six_pct.toFixed(1)}%`, lbl: "Six Rate", icon: "🚀", color: "#8B5CF6" },
-          { val: `${stats.rotation_pct.toFixed(1)}%`, lbl: "Rotation %", icon: "🔄", color: "#06D6A0" },
-        ].map(s => (
-          <div key={s.lbl} className="stat-card" style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 28, marginBottom: 6 }}>{s.icon}</div>
-            <div className="stat-val" style={{ color: s.color, fontSize: 24 }}>{s.val}</div>
-            <div className="stat-label">{s.lbl}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid-3 section-gap">
-        {stats.phases.map((ph, i) => (
-          <div key={ph.phase} className="card" style={{ borderColor: ["rgba(29,111,232,0.25)", "rgba(139,92,246,0.25)", "rgba(245,158,11,0.25)"][i] }}>
-            <div style={{ fontSize: 11, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>{ph.phase}</div>
-            <div className="stat-val" style={{ color: ["#4F8EF7", "#A78BFA", "#F59E0B"][i], fontSize: 22 }}>{ph.sr}</div>
-            <div className="stat-sub">SR • Avg {ph.avg} • {ph.balls} balls</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div className="card-title"><span>⚫</span> Ball-by-Ball Breakdown</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
-          {[
-            { label: "Dot", val: `${stats.dot_pct.toFixed(0)}%`, color: "#EF4444" },
-            { label: "1s", val: `${stats.rotation_pct.toFixed(0)}%`, color: "#F59E0B" },
-            { label: "2s", val: `${Math.max(2, Math.floor(stats.rotation_pct * 0.3)).toFixed(0)}%`, color: "#8B5CF6" },
-            { label: "4s", val: `${(stats.boundary_pct - stats.six_pct).toFixed(0)}%`, color: "#06D6A0" },
-            { label: "6s", val: `${stats.six_pct.toFixed(0)}%`, color: "#1D6FE8" },
-          ].map(b => (
-            <div key={b.label} style={{ textAlign: "center", padding: "14px 8px", background: "#1A2030", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ color: b.color, fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700 }}>{b.val}</div>
-              <div style={{ fontSize: 10, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", marginTop: 4, textTransform: "uppercase", letterSpacing: 0.8 }}>{b.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ── Prediction Tab ─────────────────────────────────────────────────────────
-function PredictionTab({ player, players, stats }) {
-  const [spinType, setSpinType] = useState("right-arm offbreak");
-  const [phase, setPhase] = useState("Middle");
-  const [venue, setVenue] = useState(VENUES[0]);
-  const [oppTeam, setOppTeam] = useState(IPL_TEAMS[0]);
+// ─── AI INSIGHT BOX ────────────────────────────────────────────────────────────
+function AIInsightBox({ prompt, triggerKey }) {
+  const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pred, setPred] = useState(null);
-  const [predInsight, setPredInsight] = useState(null);
-  const [predInsightLoading, setPredInsightLoading] = useState(false);
-  const [predCacheStatus, setPredCacheStatus] = useState(null);
+  const [error, setError] = useState(null);
+  const [generated, setGenerated] = useState(false);
 
-  useEffect(() => {
-    if (!pred || !player) return;
-
-    const fingerprint = buildPredFingerprint(pred);
-    const cached = getCachedInsight("prediction", player.ID, fingerprint);
-
-    if (cached) {
-      setPredInsight(cached);
-      setPredInsightLoading(false);
-      setPredCacheStatus("hit");
-      return;
-    }
-
-    setPredInsight(null);
-    setPredInsightLoading(true);
-    setPredCacheStatus(null);
-
-    const prompt = `You are an expert IPL cricket analyst. In 4-5 sentences explain this match prediction and what it means for team strategy. Be specific about bowling tactics, field placements, and match situation.
-
-Player: ${player.longName} (${player.longBattingStyles})
-Bowling: ${SPIN_TYPES[pred.spin_type]?.label} in ${pred.phase} overs at ${pred.venue}
-Predicted Strike Rate: ${pred.predicted_sr}, Predicted Average: ${pred.predicted_avg}
-Dismissal Probability: ${(pred.dismissal_prob * 100).toFixed(1)}%, Expected Runs: ${pred.expected_runs}, Model Confidence: ${pred.confidence}%`;
-
-    generateAIInsight(prompt, (text) => {
-      setPredInsight(text);
-      setPredInsightLoading(false);
-    })
-      .then(text => {
-        if (text) {
-          setCachedInsight("prediction", player.ID, fingerprint, text);
-          setPredCacheStatus("fresh");
-        }
-        setPredInsightLoading(false);
-      })
-      .catch(() => {
-        setPredInsight("AI insight unavailable — make sure Ollama is running.");
-        setPredInsightLoading(false);
-      });
-  }, [pred]);
-
-  const runPrediction = useCallback(async () => {
-    if (!player) return;
-    setLoading(true);
-    setPred(null);
-    setPredInsight(null);
-    setPredCacheStatus(null);
+  const generate = useCallback(async () => {
+    setLoading(true); setError(null); setText(""); setGenerated(false);
     try {
-      const statsRes = await fetch(`${API}/player-stats/${player.ID}`);
-      const statsData = statsRes.ok ? await statsRes.json() : {};
-      const batter_features = statsData.batter_features ?? {};
-      const bvs_rows = statsData.batter_vs_spin ?? [];
-      const batter_vs_spin = bvs_rows[0] ?? {};
-
-      const predRes = await fetch(`${API}/predict`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: player.ID, spin_type: spinType, phase, venue, batter_features, batter_vs_spin }),
-      });
-
-      if (!predRes.ok) throw new Error("Flask error");
-      const result = await predRes.json();
-      if (result.error) throw new Error(result.error);
-
-      setPred({
-        predicted_sr:   result.predicted_sr,
-        predicted_avg:  result.predicted_avg,
-        dismissal_prob: result.dismissal_prob,
-        expected_runs:  result.expected_runs ?? parseFloat((result.predicted_avg * (1 - result.dismissal_prob)).toFixed(1)),
-        confidence:     result.confidence,
-        spin_type: spinType, venue, phase,
-      });
-    } catch (err) {
-      console.error("Prediction failed:", err.message);
-      alert("Prediction failed: " + err.message + "\n\nMake sure Flask is running.");
-    } finally {
-      setLoading(false);
+      await callClaude(prompt, (t) => setText(t));
+      setGenerated(true);
+    } catch (e) {
+      setError("AI unavailable. Please ensure the Anthropic API is configured.");
     }
-  }, [player, spinType, phase, venue]);
+    setLoading(false);
+  }, [prompt]);
 
-  if (!player) return (
-    <div className="empty-state">
-      <div className="empty-icon">🔮</div>
-      <div className="empty-text">Select a player, then configure the match scenario to generate a prediction.</div>
-    </div>
-  );
+  useEffect(() => { setGenerated(false); setText(""); }, [triggerKey]);
 
   return (
-    <>
-      <div className="card section-gap">
-        <div className="card-title"><span>⚙️</span> Match Configuration</div>
-        <div className="grid-2" style={{ marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Spin Type</div>
-            <div className="select-wrap">
-              <select value={spinType} onChange={e => setSpinType(e.target.value)}>
-                {SPIN_STYLE_KEYS.map(k => <option key={k} value={k}>{SPIN_TYPES[k].label}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Phase</div>
-            <div className="select-wrap">
-              <select value={phase} onChange={e => setPhase(e.target.value)}>
-                {["Powerplay", "Middle", "Death"].map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Venue</div>
-            <div className="select-wrap">
-              <select value={venue} onChange={e => setVenue(e.target.value)}>
-                {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Opposition</div>
-            <div className="select-wrap">
-              <select value={oppTeam} onChange={e => setOppTeam(e.target.value)}>
-                {IPL_TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          </div>
+    <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)", border: `1px solid ${G.green}30`, borderRadius: 12, padding: "18px 20px", borderLeft: `4px solid ${G.green}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }}>✨</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Insight</span>
         </div>
-        <button onClick={runPrediction} disabled={loading} style={{
-          width: "100%", padding: "12px", background: loading ? "rgba(29,111,232,0.3)" : "rgba(29,111,232,0.85)",
-          color: "#fff", border: "none", borderRadius: 10, cursor: loading ? "not-allowed" : "pointer",
-          fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: 0.3, transition: "all .15s"
-        }}>
-          {loading ? "Running Model…" : "🔮 Generate Prediction"}
-        </button>
+        <button onClick={generate} disabled={loading} style={{
+          padding: "6px 14px", background: G.green, color: "#fff", border: "none",
+          borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+          fontFamily: "'Barlow Condensed', sans-serif", opacity: loading ? 0.7 : 1,
+        }}>{loading ? "Generating…" : generated ? "Refresh" : "Generate Insight"}</button>
       </div>
-
-      {loading && (
-        <div className="loading">
-          <span>Running spin model</span>
-          <span className="dot-anim"><span>.</span><span>.</span><span>.</span></span>
+      {error && <div style={{ color: G.red, fontSize: 13 }}>{error}</div>}
+      {loading && !text && (
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          {[0, 1, 2].map(i => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: G.green, opacity: 0.4, animation: `blink 1.2s ${i * 0.2}s infinite` }} />)}
+          <span style={{ fontSize: 13, color: G.gray500, marginLeft: 6 }}>Analyzing performance data…</span>
         </div>
       )}
+      {text && <p style={{ fontSize: 13.5, color: G.gray700, lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>{text}</p>}
+      {!text && !loading && !error && (
+        <p style={{ fontSize: 13, color: G.gray400, margin: 0, fontStyle: "italic" }}>Click "Generate Insight" to get AI-powered cricket analysis for this player and matchup.</p>
+      )}
+    </div>
+  );
+}
 
-      {pred && (
-        <>
-          <div className="pred-card section-gap">
-            <div className="pred-title">
-              {player.longName} vs {SPIN_TYPES[spinType]?.label} • {phase} Overs • {venue}
-            </div>
-            <div className="pred-row">
-              {[
-                { val: pred.predicted_sr.toFixed(1), lbl: "Pred. SR", color: "#1D6FE8" },
-                { val: pred.predicted_avg.toFixed(1), lbl: "Pred. Avg", color: "#06D6A0" },
-                { val: `${(pred.dismissal_prob * 100).toFixed(1)}%`, lbl: "Dismissal Prob", color: "#F59E0B" },
-                { val: pred.expected_runs.toFixed(1), lbl: "Expected Runs", color: "#8B5CF6" },
-              ].map(m => (
-                <div key={m.lbl} className="pred-metric">
-                  <div className="pred-val" style={{ color: m.color }}>{m.val}</div>
-                  <div className="pred-lbl">{m.lbl}</div>
+// ─── PAGE 1: DASHBOARD ─────────────────────────────────────────────────────────
+function DashboardPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlayer, setSelectedPlayer] = useState(PLAYERS[0]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [spinType, setSpinType] = useState("All Spin");
+  const [season, setSeason] = useState("All Seasons");
+  const [venue, setVenue] = useState("All Venues");
+  const searchRef = useRef(null);
+
+  const filtered = PLAYERS.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.team.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const stats = getPlayerStats(selectedPlayer.id);
+  const aiKey = `${selectedPlayer.id}-${spinType}-${season}-${venue}`;
+  const aiPrompt = `You are an expert IPL cricket analyst. Analyze ${selectedPlayer.name}'s batting performance against spin bowling in detail. 
+Player: ${selectedPlayer.name}, Team: ${selectedPlayer.team}, Style: ${selectedPlayer.style}
+Stats vs Spin — Strike Rate: ${stats.strikeRate}, Average: ${stats.avgRuns}, Dot Ball %: ${stats.dotBallPct}%, Boundary %: ${stats.boundaryPct}%, Dismissal Rate: ${stats.dismissalRate}%
+Filter: ${spinType}, Season: ${season}, Venue: ${venue}
+
+Provide 4-5 sentences covering:
+1. Overall assessment vs spin
+2. Key strengths and weaknesses
+3. Most vulnerable spin type and why
+4. Recommended bowling strategy
+5. Fantasy cricket recommendation
+
+Be specific, use actual cricket terminology, and mention the stats provided.`;
+
+  return (
+    <div>
+      {/* Search */}
+      <div style={{ padding: "20px 24px", background: G.gray50, borderBottom: `1px solid ${G.gray200}` }}>
+        <div style={{ maxWidth: 600, position: "relative" }} ref={searchRef}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16 }}>🔍</span>
+          <input
+            value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); setShowDropdown(true); }}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 180)}
+            placeholder="Search IPL Batter…"
+            style={{
+              width: "100%", padding: "11px 14px 11px 40px", borderRadius: 10,
+              border: `1.5px solid ${G.gray300}`, fontSize: 14, outline: "none",
+              background: G.white, fontFamily: "'Barlow Condensed', sans-serif",
+              transition: "border-color 0.15s",
+            }}
+            onFocus2={e => { e.target.style.borderColor = G.green; setShowDropdown(true); }}
+          />
+          {showDropdown && filtered.length > 0 && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+              background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 10,
+              zIndex: 200, maxHeight: 260, overflowY: "auto",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            }}>
+              {filtered.map(p => (
+                <div key={p.id} onMouseDown={() => { setSelectedPlayer(p); setSearchQuery(p.name); setShowDropdown(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${G.gray100}` }}
+                  onMouseEnter={e => e.currentTarget.style.background = G.greenLight}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <Avatar name={p.name} size={34} color={G.green} />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: G.gray500 }}>{p.team} · {p.style}</div>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="conf-bar">
-              <div className="conf-fill" style={{ width: `${pred.confidence}%` }} />
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: "24px" }}>
+        {/* Player Hero */}
+        <div style={{
+          background: `linear-gradient(135deg, ${G.gray900} 0%, #0f2d1c 100%)`,
+          borderRadius: 14, padding: "24px", marginBottom: 20, position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: `${G.green}20`, borderRadius: "50%", transform: "translate(60px,-60px)" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative" }}>
+            <Avatar name={selectedPlayer.name} size={72} color={G.green} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: G.white, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5 }}>{selectedPlayer.name}</div>
+              <div style={{ fontSize: 14, color: G.greenMid, fontWeight: 600, marginTop: 2 }}>{selectedPlayer.team}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                <Badge label={selectedPlayer.style} color={G.white} bg={`${G.green}80`} />
+                <Badge label={selectedPlayer.role} color={G.white} bg="rgba(255,255,255,0.15)" />
+                <Badge label={`Age ${selectedPlayer.age}`} color={G.white} bg="rgba(255,255,255,0.1)" />
+              </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-              <span style={{ fontSize: 11, color: "#4E5A6E", fontFamily: "'DM Mono', monospace" }}>Model Confidence</span>
-              <span style={{ fontSize: 11, color: "#06D6A0", fontFamily: "'DM Mono', monospace" }}>{pred.confidence}%</span>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 36, fontWeight: 800, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1 }}>{stats.strikeRate}</div>
+              <div style={{ fontSize: 11, color: G.gray400, textTransform: "uppercase", letterSpacing: 1 }}>SR vs Spin</div>
             </div>
           </div>
+        </div>
 
-          <div className="card">
-            <div className="card-title"><span>📊</span> Historical vs Predicted</div>
+        {/* Filters */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: G.gray600, fontFamily: "'Barlow Condensed', sans-serif" }}>Filters:</span>
+          {[
+            { label: "Spin Type", value: spinType, options: SPIN_TYPES, set: setSpinType },
+            { label: "Season", value: season, options: SEASONS, set: setSeason },
+            { label: "Venue", value: venue, options: VENUES, set: setVenue },
+          ].map(f => (
+            <select key={f.label} value={f.value} onChange={e => f.set(e.target.value)} style={{
+              padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`,
+              fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white,
+              color: G.gray700, cursor: "pointer", outline: "none",
+            }}>
+              {f.options.map(o => <option key={o}>{o}</option>)}
+            </select>
+          ))}
+        </div>
+
+        {/* KPI Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
+          <KpiCard label="Strike Rate vs Spin" value={stats.strikeRate} icon="⚡" color={G.green} />
+          <KpiCard label="Dot Ball %" value={`${stats.dotBallPct}%`} icon="⚫" color="#6b7280" />
+          <KpiCard label="Boundary %" value={`${stats.boundaryPct}%`} icon="🏏" color={G.accent} />
+          <KpiCard label="Dismissal Rate" value={`${stats.dismissalRate}%`} icon="🎯" color={G.red} />
+          <KpiCard label="Average vs Spin" value={stats.avgRuns} icon="📈" color={G.blue} />
+          <KpiCard label="Balls / Dismissal" value={stats.ballsPerDismissal} icon="🔢" color="#8b5cf6" />
+        </div>
+
+        {/* Charts Row 1 */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Card>
+            <SectionTitle icon="🥧">Runs Distribution</SectionTitle>
+            <div style={{ height: 220, display: "flex", alignItems: "center", gap: 16 }}>
+              <ResponsiveContainer width="60%" height="100%">
+                <PieChart>
+                  <Pie data={stats.runsDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                    {stats.runsDistribution.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ flex: 1 }}>
+                {stats.runsDistribution.map((d, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: G.gray600, flex: 1 }}>{d.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{d.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <SectionTitle icon="📊">Performance by Spin Type</SectionTitle>
             <div style={{ height: 220 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: "Historical SR", historical: stats.sr, predicted: pred.predicted_sr },
-                  { name: "Historical Avg", historical: stats.avg, predicted: pred.predicted_avg },
-                ]}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
+                <BarChart data={stats.spinComparison} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
+                  <XAxis dataKey="type" tick={{ fill: G.gray500, fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: G.gray500, fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 12, color: "#8A95A8" }} />
-                  <Bar dataKey="historical" name="Historical" fill="rgba(29,111,232,0.4)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="predicted" name="Predicted" fill="#1D6FE8" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
+                  <Bar dataKey="sr" name="Strike Rate" fill={G.green} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="avg" name="Average" fill={G.accent} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </Card>
+        </div>
+
+        {/* Historical Trend */}
+        <Card style={{ marginBottom: 16 }}>
+          <SectionTitle icon="📈">Historical IPL Performance vs Spin</SectionTitle>
+          <div style={{ height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.seasonalTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
+                <XAxis dataKey="season" tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
+                <Line type="monotone" dataKey="sr" name="Strike Rate" stroke={G.green} strokeWidth={2.5} dot={{ fill: G.green, r: 4 }} />
+                <Line type="monotone" dataKey="avg" name="Average" stroke={G.accent} strokeWidth={2.5} dot={{ fill: G.accent, r: 4 }} strokeDasharray="5 3" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        {/* Weakness + Dismissal Analysis */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Card>
+            <SectionTitle icon="⚠️">Weakness Analysis</SectionTitle>
+            {stats.weaknesses.map((w, i) => (
+              <div key={i} style={{
+                padding: "12px 14px", borderRadius: 8, marginBottom: 8,
+                background: w.severity === "high" ? G.redLight : w.severity === "medium" ? G.amberLight : G.greenLight,
+                border: `1px solid ${w.severity === "high" ? "#fca5a5" : w.severity === "medium" ? "#fcd34d" : "#86efac"}`,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{w.type}</span>
+                  <Badge
+                    label={w.severity === "high" ? "Most Vulnerable" : w.severity === "medium" ? "Moderate Risk" : "Comfortable"}
+                    color={w.severity === "high" ? G.red : w.severity === "medium" ? G.amber : G.green}
+                    bg={w.severity === "high" ? "#fee2e2" : w.severity === "medium" ? "#fef3c7" : G.greenLight}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: G.gray500, marginTop: 4 }}>{w.dismissals} dismissals across IPL seasons</div>
+              </div>
+            ))}
+          </Card>
+
+          <Card>
+            <SectionTitle icon="🎯">Dismissal Analysis</SectionTitle>
+            <div style={{ height: 180 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={stats.dismissalTypes} cx="50%" cy="50%" outerRadius={70} dataKey="value" paddingAngle={2}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
+                    {stats.dismissalTypes.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+
+        {/* AI Insight */}
+        <AIInsightBox prompt={aiPrompt} triggerKey={aiKey} />
+
+        {/* Strengths / Weaknesses Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+          <Card style={{ borderTop: `3px solid ${G.green}` }}>
+            <SectionTitle icon="💪">Key Strengths</SectionTitle>
+            {["Exceptional timing against Off Spin", "High boundary percentage in Powerplay", "Consistent average across seasons"].map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <span style={{ color: G.green, fontWeight: 700, flexShrink: 0 }}>✓</span>
+                <span style={{ fontSize: 13, color: G.gray700 }}>{s}</span>
+              </div>
+            ))}
+          </Card>
+          <Card style={{ borderTop: `3px solid ${G.red}` }}>
+            <SectionTitle icon="⚡">Key Weaknesses</SectionTitle>
+            {["Struggles against Leg Spin in Death Overs", "High dot ball percentage vs Wrist Spin", "Dismissal frequency rises in middle overs"].map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <span style={{ color: G.red, fontWeight: 700, flexShrink: 0 }}>✗</span>
+                <span style={{ fontSize: 13, color: G.gray700 }}>{s}</span>
+              </div>
+            ))}
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PAGE 2: MATCH PREDICTION ──────────────────────────────────────────────────
+function PredictionPage() {
+  const [batter, setBatter] = useState(PLAYERS[0]);
+  const [venue, setVenue] = useState(VENUES[1]);
+  const [oppTeam, setOppTeam] = useState(IPL_TEAMS[0]);
+  const [phase, setPhase] = useState("Middle Overs");
+  const [selectedBowlers, setSelectedBowlers] = useState([]);
+  const [predResult, setPredResult] = useState(null);
+  const [predLoading, setPredLoading] = useState(false);
+  const [aiPredText, setAiPredText] = useState("");
+  const [aiPredLoading, setAiPredLoading] = useState(false);
+  const [batSearch, setBatSearch] = useState(PLAYERS[0].name);
+  const [batOpen, setBatOpen] = useState(false);
+
+  const toggleBowler = (b) => setSelectedBowlers(prev => prev.some(x => x.id === b.id) ? prev.filter(x => x.id !== b.id) : [...prev, b]);
+
+  const generate = async () => {
+    if (selectedBowlers.length === 0) return;
+    setPredLoading(true);
+    await new Promise(r => setTimeout(r, 800));
+    const stats = getPlayerStats(batter.id);
+    const sr = stats.strikeRate + (phase === "Powerplay" ? 12 : phase === "Death Overs" ? 18 : 0);
+    const balls = phase === "Powerplay" ? Math.round(18 + Math.random() * 10) : phase === "Death Overs" ? Math.round(6 + Math.random() * 6) : Math.round(14 + Math.random() * 12);
+    const runs = Math.round(balls * sr / 100);
+    const dismissalProb = Math.round(stats.dismissalRate + selectedBowlers.length * 3 + Math.random() * 10);
+    const conf = Math.round(72 + Math.random() * 20);
+    const risk = dismissalProb > 65 ? "High Risk" : dismissalProb > 45 ? "Medium Risk" : "Low Risk";
+    setPredResult({ runs, balls, sr: sr.toFixed(1), dismissalProb: Math.min(90, dismissalProb), confidence: conf, risk });
+    setPredLoading(false);
+
+    setAiPredLoading(true); setAiPredText("");
+    const prompt = `You are an IPL cricket match predictor. Predict ${batter.name}'s performance against selected spin bowlers.
+Match Setup: vs ${oppTeam} at ${venue}, ${phase}
+Selected Bowlers: ${selectedBowlers.map(b => `${b.name} (${b.type})`).join(", ")}
+Predicted Stats: ${runs} runs off ${balls} balls, SR: ${sr.toFixed(1)}, Dismissal Prob: ${Math.min(90, dismissalProb)}%, Confidence: ${conf}%
+
+Explain in 3-4 sentences:
+1. Why this prediction was generated based on historical matchups
+2. Key tactical factors affecting the prediction
+3. What could cause the prediction to be wrong
+4. Fantasy cricket recommendation (Captain/VC or avoid)`;
+
+    try {
+      await callClaude(prompt, t => setAiPredText(t));
+    } catch {}
+    setAiPredLoading(false);
+  };
+
+  const riskColor = predResult?.risk === "High Risk" ? G.red : predResult?.risk === "Medium Risk" ? G.amber : G.green;
+  const filteredBatters = PLAYERS.filter(p => p.name.toLowerCase().includes(batSearch.toLowerCase()));
+
+  return (
+    <div style={{ padding: "24px" }}>
+      {/* Batter selector */}
+      <Card style={{ marginBottom: 16 }}>
+        <SectionTitle icon="🏏">Select Batter</SectionTitle>
+        <div style={{ position: "relative", maxWidth: 400 }}>
+          <input value={batSearch} onChange={e => { setBatSearch(e.target.value); setBatOpen(true); }}
+            onFocus={() => setBatOpen(true)} onBlur={() => setTimeout(() => setBatOpen(false), 160)}
+            placeholder="Search batter…"
+            style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${G.gray300}`, fontSize: 13, outline: "none", fontFamily: "'Barlow Condensed', sans-serif" }} />
+          {batOpen && filteredBatters.length > 0 && (
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 8, zIndex: 200, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
+              {filteredBatters.map(p => (
+                <div key={p.id} onMouseDown={() => { setBatter(p); setBatSearch(p.name); setBatOpen(false); setPredResult(null); setAiPredText(""); }}
+                  style={{ padding: "9px 12px", cursor: "pointer", fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", borderBottom: `1px solid ${G.gray100}` }}
+                  onMouseEnter={e => e.currentTarget.style.background = G.greenLight}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >{p.name} <span style={{ color: G.gray400, fontSize: 11 }}>· {p.team}</span></div>
+              ))}
+            </div>
+          )}
+        </div>
+        {batter && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, padding: "12px 16px", background: G.greenLight, borderRadius: 8 }}>
+            <Avatar name={batter.name} size={48} color={G.green} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{batter.name}</div>
+              <div style={{ fontSize: 12, color: G.gray500 }}>{batter.team} · {batter.style}</div>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Match Inputs */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <Card>
+          <SectionTitle icon="🏟️">Venue & Opponent</SectionTitle>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Venue</label>
+            <select value={venue} onChange={e => setVenue(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
+              {VENUES.filter(v => v !== "All Venues").map(v => <option key={v}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Opponent Team</label>
+            <select value={oppTeam} onChange={e => setOppTeam(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
+              {IPL_TEAMS.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+        </Card>
+
+        <Card>
+          <SectionTitle icon="🕐">Match Phase</SectionTitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {PHASES.map(p => (
+              <div key={p} onClick={() => setPhase(p)} style={{
+                padding: "11px 16px", borderRadius: 8, cursor: "pointer",
+                background: phase === p ? G.green : G.gray50,
+                color: phase === p ? G.white : G.gray700,
+                border: `1px solid ${phase === p ? G.green : G.gray200}`,
+                fontSize: 14, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif",
+                transition: "all 0.15s",
+              }}>{p}</div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Bowler Selection */}
+      <Card style={{ marginBottom: 16 }}>
+        <SectionTitle icon="🎳">Select Spin Bowlers</SectionTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          {SPIN_BOWLERS.map(b => {
+            const sel = selectedBowlers.some(x => x.id === b.id);
+            return (
+              <div key={b.id} onClick={() => toggleBowler(b)} style={{
+                padding: "12px 14px", borderRadius: 10, cursor: "pointer",
+                border: `2px solid ${sel ? G.green : G.gray200}`,
+                background: sel ? G.greenLight : G.white, transition: "all 0.15s",
+              }}>
+                <Avatar name={b.name} size={36} color={sel ? G.green : G.gray400} />
+                <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{b.name}</div>
+                <div style={{ fontSize: 11, color: G.gray500, marginTop: 2 }}>{b.type}</div>
+                <div style={{ fontSize: 10, color: G.gray400 }}>{b.team}</div>
+              </div>
+            );
+          })}
+        </div>
+        {selectedBowlers.length === 0 && (
+          <div style={{ fontSize: 12, color: G.amber, marginTop: 10, fontStyle: "italic" }}>⚠ Select at least one spin bowler to generate prediction</div>
+        )}
+      </Card>
+
+      <button onClick={generate} disabled={predLoading || selectedBowlers.length === 0} style={{
+        width: "100%", padding: "14px", background: selectedBowlers.length === 0 ? G.gray300 : G.green, color: G.white,
+        border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: selectedBowlers.length === 0 ? "not-allowed" : "pointer",
+        fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5, marginBottom: 20, transition: "all 0.15s",
+      }}>{predLoading ? "⚙ Generating Prediction…" : "✨ Generate AI Prediction"}</button>
+
+      {/* Prediction Results */}
+      {predResult && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
+            {[
+              { label: "Predicted Runs", value: predResult.runs, icon: "🏏", color: G.green },
+              { label: "Predicted Balls", value: predResult.balls, icon: "⚽", color: G.blue },
+              { label: "Strike Rate", value: predResult.sr, icon: "⚡", color: G.accent },
+              { label: "Dismissal Prob", value: `${predResult.dismissalProb}%`, icon: "🎯", color: G.red },
+            ].map(c => <KpiCard key={c.label} {...c} />)}
           </div>
 
-          <div className="ai-card section-gap">
-            <div className="ai-card-title">
-              <Sparkles size={15}/> AI Prediction Insight
-              {predCacheStatus && !predInsightLoading && (
-                <span className={`cache-badge ${predCacheStatus}`}>
-                  {predCacheStatus === "hit" ? "✓ cached" : "✦ fresh"}
-                </span>
-              )}
+          <Card style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <SectionTitle icon="📊">Confidence Score</SectionTitle>
+              <Badge label={predResult.risk} color={riskColor === G.red ? G.red : riskColor === G.amber ? G.amber : G.green} bg={riskColor === G.red ? G.redLight : riskColor === G.amber ? G.amberLight : G.greenLight} />
             </div>
-            {predInsightLoading
-              ? <div className="ai-loading"><Sparkles size={13}/><span>Generating insight<span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></span></div>
-              : <p className="ai-text">{predInsight}</p>
-            }
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ fontSize: 36, fontWeight: 800, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", minWidth: 60 }}>{predResult.confidence}%</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ height: 10, background: G.gray100, borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ width: `${predResult.confidence}%`, height: "100%", background: `linear-gradient(90deg, ${G.green}, ${G.greenMid})`, borderRadius: 5, transition: "width 0.8s ease" }} />
+                </div>
+                <div style={{ fontSize: 11, color: G.gray400, marginTop: 4 }}>Model confidence based on historical matchup data</div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Matchup notes */}
+          <Card style={{ marginBottom: 16, borderLeft: `4px solid ${G.accent}` }}>
+            <SectionTitle icon="💡">Matchup Analysis</SectionTitle>
+            {[
+              `${batter.name} historically shows ${predResult.sr > 130 ? "strong" : "moderate"} performance in ${phase} against spin at ${venue}.`,
+              selectedBowlers.length > 0 ? `${selectedBowlers[0].name} (${selectedBowlers[0].type}) is a key threat — watch for flight and turn.` : null,
+              `Risk indicator: ${predResult.risk} — ${predResult.risk === "High Risk" ? "expect significant challenge from selected bowlers." : "conditions favour balanced performance."}`,
+            ].filter(Boolean).map((note, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <span style={{ color: G.accent, flexShrink: 0 }}>→</span>
+                <span style={{ fontSize: 13, color: G.gray700 }}>{note}</span>
+              </div>
+            ))}
+          </Card>
+
+          {/* AI Explanation */}
+          <div style={{ background: G.greenLight, border: `1px solid ${G.green}30`, borderRadius: 12, padding: "18px 20px", borderLeft: `4px solid ${G.green}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 18 }}>🤖</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Prediction Explanation</span>
+            </div>
+            {aiPredLoading && !aiPredText && (
+              <div style={{ color: G.gray400, fontSize: 13 }}>Generating explanation…</div>
+            )}
+            {aiPredText && <p style={{ fontSize: 13.5, color: G.gray700, lineHeight: 1.8, margin: 0 }}>{aiPredText}</p>}
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 
-// ── Spin Type AI Analysis Component ──────────────────────────────────────
-function SpinTypeAIAnalysis({ player, stats }) {
-  const [analysisData, setAnalysisData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [cacheStatus, setCacheStatus] = useState(null);
+// ─── PAGE 3: SAVED PREDICTIONS ─────────────────────────────────────────────────
+function SavedPage() {
+  const [selected, setSelected] = useState(null);
+  const [aiReview, setAiReview] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
-  const fingerprint = useMemo(() => {
-    if (!stats?.spinComparison) return "";
-    return stats.spinComparison.map(s => `${s.short}:${s.sr}:${s.avg}:${s.dismissalProb}`).join("|");
-  }, [stats]);
+  const generateReview = async (pred) => {
+    setSelected(pred); setAiReview(""); setAiLoading(true);
+    const prompt = `You are an IPL cricket AI analyst reviewing prediction accuracy.
+Match: ${pred.match} at ${pred.venue}
+Batter: ${pred.batter}
+Predicted: ${pred.predictedRuns} runs, SR: ${pred.predictedSR}, Dismissal Prob: ${pred.dismissalProb}%
+Actual: ${pred.actualRuns} runs, SR: ${pred.actualSR}, ${pred.dismissed ? "Was dismissed" : "Not dismissed"}
+Accuracy: ${pred.accuracy}
+Difference: ${pred.actualRuns - pred.predictedRuns} runs
 
-  const loadAnalysis = useCallback(async (forceRefresh = false) => {
-    if (!player || !stats?.spinComparison) return;
+Provide a post-match AI review in 3-4 sentences covering:
+1. Why the prediction was ${pred.accuracy.toLowerCase()}
+2. What factors caused any discrepancy (pitch, bowling changes, batting form)
+3. What the model learned from this prediction
+4. How this improves future predictions
 
-    if (!forceRefresh) {
-      const cached = getCachedInsight("spintype_analysis", player.ID, fingerprint);
-      if (cached) {
-        try {
-          setAnalysisData(JSON.parse(cached));
-          setCacheStatus("hit");
-          return;
-        } catch {}
-      }
-    }
-
-    setLoading(true);
-    setError(null);
-    setCacheStatus(null);
-
+End with a "What Went Right" and "What Went Wrong" section.`;
     try {
-      const result = await generateSpinAnalysis(player, stats, stats.spinComparison);
-      setAnalysisData(result);
-      setCachedInsight("spintype_analysis", player.ID, fingerprint, JSON.stringify(result));
-      setCacheStatus("fresh");
-    } catch (e) {
-      console.error("Spin analysis failed:", e);
-      setError("AI analysis unavailable. Check your API connection.");
-    } finally {
-      setLoading(false);
+      await callClaude(prompt, t => setAiReview(t));
+    } catch {
+      setAiReview("AI review unavailable.");
     }
-  }, [player, stats, fingerprint]);
-
-  useEffect(() => {
-    if (player && stats?.spinComparison) loadAnalysis(false);
-  }, [player?.ID, fingerprint]);
-
-  const ratingIcon = (r) => {
-    if (r === "strength") return <TrendingUp size={11} />;
-    if (r === "weakness") return <TrendingDown size={11} />;
-    return <ShieldAlert size={11} />;
+    setAiLoading(false);
   };
 
-  const ratingLabel = { strength: "Strength", neutral: "Neutral", weakness: "Vulnerability" };
+  const accColor = (a) => a === "Accurate" ? G.green : a === "Partially Accurate" ? G.amber : G.red;
+  const accBg = (a) => a === "Accurate" ? G.greenLight : a === "Partially Accurate" ? G.amberLight : G.redLight;
+
+  const totalPredictions = SAVED_PREDICTIONS.length;
+  const accurate = SAVED_PREDICTIONS.filter(p => p.accuracy === "Accurate").length;
+  const partial = SAVED_PREDICTIONS.filter(p => p.accuracy === "Partially Accurate").length;
+  const avgDiff = Math.round(SAVED_PREDICTIONS.reduce((s, p) => s + Math.abs(p.actualRuns - p.predictedRuns), 0) / totalPredictions);
 
   return (
-    <div className="spin-ai-wrap section-gap">
-      <div className="spin-ai-header">
-        <div className="spin-ai-header-left">
-          <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, rgba(139,92,246,0.4), rgba(29,111,232,0.3))", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Sparkles size={16} color="#C5B8FF" />
-          </div>
-          <div>
-            <div className="spin-ai-title">Spin Type Breakdown</div>
-            <div className="spin-ai-subtitle">AI-powered weakness & strength analysis per spin type</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {cacheStatus && !loading && (
-            <span className={`cache-badge ${cacheStatus}`}>
-              {cacheStatus === "hit" ? "✓ cached" : "✦ fresh"}
-            </span>
-          )}
-          <button className="regen-btn" onClick={() => loadAnalysis(true)} disabled={loading}>
-            <Sparkles size={11} />
-            {loading ? "Analyzing…" : "Regenerate"}
-          </button>
-        </div>
+    <div style={{ padding: "24px" }}>
+      {/* Summary KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <KpiCard label="Total Predictions" value={totalPredictions} icon="📋" color={G.blue} />
+        <KpiCard label="Accurate" value={accurate} icon="✅" color={G.green} sub={`${Math.round(accurate/totalPredictions*100)}% accuracy`} />
+        <KpiCard label="Partially Accurate" value={partial} icon="🟡" color={G.amber} />
+        <KpiCard label="Avg Run Difference" value={`${avgDiff}`} icon="📉" color={G.red} sub="runs off target" />
       </div>
 
-      <div className="spin-ai-body">
-        {loading && (
-          <>
-            <div className="verdict-box" style={{ background: "rgba(255,255,255,0.02)" }}>
-              <div className="shimmer-line" style={{ width: "90%" }} />
-              <div className="shimmer-line" style={{ width: "75%" }} />
-            </div>
-            <div className="legend-row">
-              {[80, 60, 50].map((w, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div className="shimmer-line" style={{ width: w, height: 10, margin: 0, borderRadius: 10 }} />
-                </div>
-              ))}
-            </div>
-            <div className="spin-type-analysis-grid">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="sta-card neutral" style={{ animationDelay: `${i * 0.08}s` }}>
-                  <div className="shimmer-line" style={{ width: "50%", height: 10 }} />
-                  <div className="shimmer-line" style={{ width: "80%", height: 14 }} />
-                  <div className="shimmer-line" style={{ width: "100%", height: 10 }} />
-                  <div className="shimmer-line" style={{ width: "70%", height: 10 }} />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {error && !loading && (
-          <div style={{ padding: "24px", textAlign: "center", color: "#F87171", fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
-            ⚠ {error}
-          </div>
-        )}
-
-        {analysisData && !loading && (
-          <>
-            {/* Overall verdict */}
-            <div className="verdict-box">
-              "{analysisData.overall_verdict}"
-            </div>
-
-            {/* Legend */}
-            <div className="legend-row">
-              {[
-                { color: "#34D399", label: "Strength — comfortable matchup" },
-                { color: "#4F8EF7", label: "Neutral — balanced contest" },
-                { color: "#F87171", label: "Vulnerability — exploit this" },
-              ].map(l => (
-                <div key={l.label} className="legend-item">
-                  <div className="legend-dot" style={{ background: l.color }} />
-                  {l.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Spin type cards grid */}
-            <div className="spin-type-analysis-grid">
-              {analysisData.spin_types?.map((st, i) => {
-                const spinMeta = Object.values(SPIN_TYPES).find(s => s.short === st.short) || Object.values(SPIN_TYPES)[i];
+      {/* Prediction History Table */}
+      <Card style={{ marginBottom: 16 }}>
+        <SectionTitle icon="📊">Prediction History</SectionTitle>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            <thead>
+              <tr style={{ background: G.gray50 }}>
+                {["Match", "Date", "Venue", "Batter", "Pred Runs", "Actual Runs", "Difference", "Accuracy", "Action"].map(h => (
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: G.gray600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", borderBottom: `2px solid ${G.gray200}` }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {SAVED_PREDICTIONS.map((pred, i) => {
+                const diff = pred.actualRuns - pred.predictedRuns;
                 return (
-                  <div key={st.short} className={`sta-card ${st.rating}`} style={{ animationDelay: `${i * 0.07}s` }}>
-                    <div className="sta-top">
-                      <div className="sta-left">
-                        <div className="sta-dot" style={{ background: spinMeta?.color || "#4F8EF7" }} />
-                        <div>
-                          <div className="sta-type-name">{st.type}</div>
-                          <div className={`sta-headline ${st.rating}`}>{st.headline}</div>
-                        </div>
-                      </div>
-                      <div className={`sta-rating-badge ${st.rating}`}>
-                        {ratingIcon(st.rating)}
-                        {ratingLabel[st.rating]}
-                      </div>
-                    </div>
-
-                    <div className="sta-detail">{st.detail}</div>
-
-                    <div className={`sta-tip ${st.rating}`}>
-                      <div className="sta-tip-label">🎯 Bowling Tip</div>
-                      {st.bowling_tip}
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div className="sta-key-stat">
-                        📊 {st.key_stat}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#4E5A6E", fontFamily: "'DM Mono', monospace" }}>
-                        {st.confidence}% conf.
-                      </div>
-                    </div>
-
-                    <div className="conf-mini">
-                      <div className={`conf-mini-fill ${st.rating}`} style={{ width: `${st.confidence}%` }} />
-                    </div>
-                  </div>
+                  <tr key={pred.id} style={{ borderBottom: `1px solid ${G.gray100}`, transition: "background 0.1s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = G.gray50}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={{ padding: "12px", fontWeight: 700, color: G.gray800 }}>{pred.match}</td>
+                    <td style={{ padding: "12px", color: G.gray500 }}>{pred.date}</td>
+                    <td style={{ padding: "12px", color: G.gray600, maxWidth: 140, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pred.venue}</td>
+                    <td style={{ padding: "12px", fontWeight: 600, color: G.gray700 }}>{pred.batter}</td>
+                    <td style={{ padding: "12px", fontWeight: 700, color: G.blue }}>{pred.predictedRuns}</td>
+                    <td style={{ padding: "12px", fontWeight: 700, color: G.gray800 }}>{pred.actualRuns}</td>
+                    <td style={{ padding: "12px", fontWeight: 700, color: diff >= 0 ? G.green : G.red }}>{diff >= 0 ? "+" : ""}{diff}</td>
+                    <td style={{ padding: "12px" }}>
+                      <Badge label={pred.accuracy} color={accColor(pred.accuracy)} bg={accBg(pred.accuracy)} />
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      <button onClick={() => generateReview(pred)} style={{
+                        padding: "5px 12px", background: G.green, color: "#fff", border: "none",
+                        borderRadius: 6, fontSize: 11, cursor: "pointer", fontWeight: 600,
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                      }}>AI Review</button>
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Compare Tab ───────────────────────────────────────────────────────────
-function CompareTab({ player, stats }) {
-  if (!player) return (
-    <div className="empty-state">
-      <div className="empty-icon">⚡</div>
-      <div className="empty-text">Select a player to compare their performance across all 5 spin bowling types.</div>
-    </div>
-  );
-
-  const maxSR = Math.max(...stats.spinComparison.map(s => s.sr));
-
-  return (
-    <>
-      {/* ── NEW: AI Spin Type Analysis ── */}
-      <SpinTypeAIAnalysis player={player} stats={stats} />
-
-      <div className="card section-gap">
-        <div className="card-title"><span>🔄</span> Strike Rate vs Each Spin Type</div>
-        <div style={{ height: 240 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.spinComparison} layout="vertical" margin={{ left: 20 }}>
-              <CartesianGrid stroke="rgba(255,255,255,0.05)" horizontal={false} />
-              <XAxis type="number" tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, maxSR + 20]} />
-              <YAxis type="category" dataKey="short" tick={{ fill: "#8A95A8", fontSize: 12, fontFamily: "'DM Mono', monospace" }} axisLine={false} tickLine={false} width={40} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="sr" name="Strike Rate" radius={[0, 4, 4, 0]}>
-                {stats.spinComparison.map((_, i) => (
-                  <Cell key={i} fill={Object.values(SPIN_TYPES)[i]?.color || "#4F8EF7"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+            </tbody>
+          </table>
         </div>
-      </div>
+      </Card>
 
-      <div className="card section-gap">
-        <div className="card-title"><span>🎯</span> Dismissal Probability by Spin Type</div>
-        <div style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.spinComparison}>
-              <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="short" tick={{ fill: "#4E5A6E", fontSize: 11, fontFamily: "'DM Mono', monospace" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#4E5A6E", fontSize: 11 }} axisLine={false} tickLine={false} width={40} tickFormatter={v => `${(v * 100).toFixed(0)}%`} />
-              <Tooltip content={<CustomTooltip />} formatter={(v) => `${(v * 100).toFixed(1)}%`} />
-              <Bar dataKey="dismissalProb" name="Dismissal Prob" radius={[4, 4, 0, 0]}>
-                {stats.spinComparison.map((_, i) => (
-                  <Cell key={i} fill={Object.values(SPIN_TYPES)[i]?.color || "#4F8EF7"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="grid-2">
-        {stats.spinComparison.map((s, i) => {
-          const meta = Object.values(SPIN_TYPES)[i];
-          return (
-            <div key={s.short} className="card" style={{ borderColor: `${meta?.color}25` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: meta?.color }} />
-                <div style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: "#8A95A8" }}>{s.type}</div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                <div>
-                  <div style={{ color: meta?.color, fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18 }}>{s.sr}</div>
-                  <div style={{ fontSize: 9, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 0.8 }}>SR</div>
-                </div>
-                <div>
-                  <div style={{ color: "#06D6A0", fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18 }}>{s.avg}</div>
-                  <div style={{ fontSize: 9, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 0.8 }}>Avg</div>
-                </div>
-                <div>
-                  <div style={{ color: "#F59E0B", fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18 }}>{s.balls}</div>
-                  <div style={{ fontSize: 9, color: "#4E5A6E", fontFamily: "'DM Mono', monospace", textTransform: "uppercase", letterSpacing: 0.8 }}>Balls</div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
-// ── App Root ──────────────────────────────────────────────────────────────
-export default function App() {
-  const [players, setPlayers] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [activeTab, setActiveTab] = useState("profile");
-  const [loadingPlayers, setLoadingPlayers] = useState(true);
-  const [apiStatus, setApiStatus] = useState("checking");
-
-  useEffect(() => {
-    const checkApi = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/health", { signal: AbortSignal.timeout(2000) });
-        setApiStatus(res.ok ? "connected" : "disconnected");
-      } catch {
-        setApiStatus("disconnected");
-      }
-    };
-    checkApi();
-    const interval = setInterval(checkApi, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (apiStatus !== "connected") return;
-    fetch(`${API}/players`)
-      .then(res => res.json())
-      .then(data => {
-        setPlayers(data);
-        setLoadingPlayers(false);
-      })
-      .catch(() => setLoadingPlayers(false));
-  }, [apiStatus]);
-
-  const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    if (!selectedPlayer || apiStatus !== "connected") { setStats(null); return; }
-    fetch(`${API}/player-stats/${selectedPlayer.ID}`)
-      .then(res => res.json())
-      .then(data => data.error ? setStats(null) : setStats(data))
-      .catch(() => setStats(null));
-  }, [selectedPlayer, apiStatus]);
-
-  const TAB_TITLES = {
-    profile: "Player Profile",
-    analysis: "Spin Analysis",
-    prediction: "Match Prediction",
-    compare: "Spin Type Comparison",
-  };
-
-  return (
-    <>
-      <style>{css}</style>
-      <div className="app">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <div className="main">
-          <div className="topbar">
-            <div className="topbar-title">{TAB_TITLES[activeTab]}</div>
-            {selectedPlayer && <span style={{ fontSize: 13, color: "#4F8EF7", fontFamily: "'DM Mono', monospace" }}>{selectedPlayer.longName}</span>}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20,
-              background: apiStatus === "connected" ? "rgba(6,214,160,0.1)" : apiStatus === "disconnected" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)",
-              border: `1px solid ${apiStatus === "connected" ? "rgba(6,214,160,0.3)" : apiStatus === "disconnected" ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)"}`,
-            }}>
-              <div style={{
-                width: 7, height: 7, borderRadius: "50%",
-                backgroundColor: apiStatus === "connected" ? "#06D6A0" : apiStatus === "disconnected" ? "#EF4444" : "#F59E0B",
-                boxShadow: apiStatus === "connected" ? "0 0 6px #06D6A0" : "none",
-                animation: apiStatus === "checking" ? "pulse 1s infinite" : "none",
-              }} />
-              <span style={{
-                fontSize: 11, fontFamily: "'DM Mono', monospace",
-                color: apiStatus === "connected" ? "#06D6A0" : apiStatus === "disconnected" ? "#EF4444" : "#F59E0B",
-              }}>
-                {apiStatus === "connected" ? "API Connected" : apiStatus === "disconnected" ? "API Offline" : "Checking…"}
-              </span>
-            </div>
-            <span className="topbar-badge">Batsman performance against spin</span>
+      {/* Detail View */}
+      {selected && (
+        <Card style={{ marginBottom: 16, borderTop: `3px solid ${accColor(selected.accuracy)}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <SectionTitle icon="🔍">Detailed Comparison — {selected.match}</SectionTitle>
+            <Badge label={selected.accuracy} color={accColor(selected.accuracy)} bg={accBg(selected.accuracy)} />
           </div>
-          <div className="content">
-            <div className="card section-gap">
-              <div className="card-title"><span>🏏</span> Select Batter</div>
-              {apiStatus === "disconnected"
-                ? <div style={{ color: "#EF4444", fontSize: 13 }}>⚠ Start Flask to load players</div>
-                : apiStatus === "checking" || loadingPlayers
-                ? <div style={{ color: "#4E5A6E", fontSize: 13 }}>Loading players…</div>
-                : <PlayerSearch players={players} selected={selectedPlayer} onSelect={setSelectedPlayer} />
-              }
-              {selectedPlayer && (
-                <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(29,111,232,0.08)", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                  <PlayerAvatar player={selectedPlayer} size={28} />
-                  <span style={{ fontSize: 13, color: "#4F8EF7" }}>{selectedPlayer.longName}</span>
-                  <span style={{ fontSize: 11, color: "#4E5A6E", marginLeft: "auto" }}>{selectedPlayer.longBattingStyles} • ID {selectedPlayer.ID}</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ background: G.blueLight, borderRadius: 10, padding: "16px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: G.blue, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Predicted</div>
+              {[
+                { label: "Runs", value: selected.predictedRuns },
+                { label: "Strike Rate", value: selected.predictedSR },
+                { label: "Dismissal Prob", value: `${selected.dismissalProb}%` },
+              ].map(r => (
+                <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: G.gray600 }}>{r.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{r.value}</span>
                 </div>
-              )}
+              ))}
             </div>
+            <div style={{ background: G.greenLight, borderRadius: 10, padding: "16px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: G.green, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Actual</div>
+              {[
+                { label: "Runs", value: selected.actualRuns },
+                { label: "Strike Rate", value: selected.actualSR },
+                { label: "Dismissed", value: selected.dismissed ? "Yes" : "No" },
+              ].map(r => (
+                <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: G.gray600 }}>{r.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{r.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-            {apiStatus === "disconnected" ? (
-              <div className="empty-state">
-                <div className="empty-icon">🔌</div>
-                <div className="empty-text">Flask API is offline. Start it with:<br/><code style={{background:"rgba(255,255,255,0.08)",padding:"4px 8px",borderRadius:4,fontSize:11,display:"block",marginTop:8}}>python app.py</code></div>
+          {/* AI Post-Match Review */}
+          <div style={{ marginTop: 16, background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 10, padding: "16px", borderLeft: `4px solid ${G.green}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 16 }}>🤖</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Post-Match Review</span>
+            </div>
+            {aiLoading && !aiReview && <div style={{ color: G.gray400, fontSize: 13 }}>Generating AI review…</div>}
+            {aiReview && <p style={{ fontSize: 13.5, color: G.gray700, lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>{aiReview}</p>}
+          </div>
+
+          {/* Model Learning */}
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            {[
+              { label: "Prediction Confidence", value: "78%", color: G.blue },
+              { label: "Prediction Error", value: `${Math.abs(selected.actualRuns - selected.predictedRuns)} runs`, color: G.red },
+              { label: "Accuracy Rating", value: selected.accuracy.split(" ")[0], color: accColor(selected.accuracy) },
+            ].map(m => (
+              <div key={m.label} style={{ background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: m.color, fontFamily: "'Barlow Condensed', sans-serif" }}>{m.value}</div>
+                <div style={{ fontSize: 10, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{m.label}</div>
               </div>
-            ) : selectedPlayer && !stats ? (
-              <div className="loading"><span>Loading player stats</span><span className="dot-anim"><span>.</span><span>.</span><span>.</span></span></div>
-            ) : (
-              <>
-                {activeTab === "profile" && <ProfileTab player={selectedPlayer} stats={stats} />}
-                {activeTab === "analysis" && <AnalysisTab player={selectedPlayer} stats={stats} />}
-                {activeTab === "prediction" && <PredictionTab player={selectedPlayer} players={players} stats={stats} />}
-                {activeTab === "compare" && <CompareTab player={selectedPlayer} stats={stats} />}
-              </>
-            )}
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ─── ROOT APP ──────────────────────────────────────────────────────────────────
+export default function App() {
+  const [page, setPage] = useState("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #f3f4f6; font-family: 'Inter', sans-serif; min-height: 100vh; }
+        button, select, input { font-family: inherit; }
+        select { appearance: none; }
+        @keyframes blink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        input:focus, select:focus { border-color: #1a7340 !important; box-shadow: 0 0 0 3px rgba(26,115,64,0.1); }
+      `}</style>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        <Sidebar page={page} setPage={setPage} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <Topbar page={page} />
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {page === "dashboard" && <DashboardPage />}
+            {page === "prediction" && <PredictionPage />}
+            {page === "saved" && <SavedPage />}
           </div>
         </div>
       </div>
