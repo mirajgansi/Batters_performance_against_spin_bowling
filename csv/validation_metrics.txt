@@ -1,10 +1,10 @@
 IPL SPIN MODEL — VALIDATION RESULTS
 =============================================
 Deliveries evaluated        : 60471
-MAE (runs/ball)             : 1.0764
-RMSE (runs/ball)            : 1.5538
-Within ±1 run (%)           : 57.1
-Bias (mean error)           : -0.007
+MAE (runs/ball)             : 1.0833
+RMSE (runs/ball)            : 1.5773
+Within ±1 run (%)           : 56.7
+Bias (mean error)           : -0.0259
 Actual mean SR              : 127.0
-Predicted mean SR           : 126.3
-Wicket AUC                  : 0.6798
+Predicted mean SR           : 124.5
+Wicket AUC                  : 0.6625
