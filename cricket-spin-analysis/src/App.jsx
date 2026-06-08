@@ -1,115 +1,53 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+/* eslint-disable */
+
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis
+  PieChart, Pie, Cell, LineChart, Line, Legend,
 } from "recharts";
 
-// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
+// ─── CONFIG ────────────────────────────────────────────────────────────────────
+const API = "http://localhost:5000";
+
+// ─── DESIGN TOKENS ─────────────────────────────────────────────────────────────
 const G = {
-  green: "#1a7340",
-  greenLight: "#e8f5ee",
-  greenMid: "#2da060",
-  accent: "#f97316",
-  accentLight: "#fff7ed",
-  blue: "#1e40af",
-  blueLight: "#eff6ff",
-  red: "#dc2626",
-  redLight: "#fef2f2",
-  amber: "#d97706",
-  amberLight: "#fffbeb",
-  gray50: "#f9fafb",
-  gray100: "#f3f4f6",
-  gray200: "#e5e7eb",
-  gray300: "#d1d5db",
-  gray400: "#9ca3af",
-  gray500: "#6b7280",
-  gray600: "#4b5563",
-  gray700: "#374151",
-  gray800: "#1f2937",
-  gray900: "#111827",
-  white: "#ffffff",
+  green: "#1a7340", greenLight: "#e8f5ee", greenMid: "#2da060",
+  accent: "#f97316", accentLight: "#fff7ed",
+  blue: "#1e40af", blueLight: "#eff6ff",
+  red: "#dc2626", redLight: "#fef2f2",
+  amber: "#d97706", amberLight: "#fffbeb",
+  gray50: "#f9fafb", gray100: "#f3f4f6", gray200: "#e5e7eb",
+  gray300: "#d1d5db", gray400: "#9ca3af", gray500: "#6b7280",
+  gray600: "#4b5563", gray700: "#374151", gray800: "#1f2937",
+  gray900: "#111827", white: "#ffffff",
 };
 
-// ─── MOCK DATA ─────────────────────────────────────────────────────────────────
-const PLAYERS = [
-  { id: 1, name: "Virat Kohli", team: "Royal Challengers Bengaluru", role: "Top Order Batter", style: "Right Handed Bat", img: "https://i.ibb.co/7NbR2Hj/kohli.png", age: 36, debut: 2008 },
-  { id: 2, name: "Rohit Sharma", team: "Mumbai Indians", role: "Top Order Batter", style: "Right Handed Bat", img: null, age: 37, debut: 2007 },
-  { id: 3, name: "KL Rahul", team: "Lucknow Super Giants", role: "Top Order Batter / WK", style: "Right Handed Bat", img: null, age: 32, debut: 2016 },
-  { id: 4, name: "Shubman Gill", team: "Gujarat Titans", role: "Top Order Batter", style: "Right Handed Bat", img: null, age: 25, debut: 2019 },
-  { id: 5, name: "David Warner", team: "Delhi Capitals", role: "Top Order Batter", style: "Left Handed Bat", img: null, age: 37, debut: 2009 },
-  { id: 6, name: "Rishabh Pant", team: "Delhi Capitals", role: "Wicket Keeper Batter", style: "Left Handed Bat", img: null, age: 26, debut: 2016 },
-  { id: 7, name: "Hardik Pandya", team: "Mumbai Indians", role: "All Rounder", style: "Right Handed Bat", img: null, age: 30, debut: 2015 },
-  { id: 8, name: "Suryakumar Yadav", team: "Mumbai Indians", role: "Middle Order Batter", style: "Right Handed Bat", img: null, age: 33, debut: 2012 },
+// Spin type values that exactly match encoder_spin classes in the model
+const SPIN_TYPE_OPTIONS = [
+  { value: "right-arm offbreak",     label: "Off Spin",              short: "OB"  },
+  { value: "slow left-arm orthodox", label: "Left Arm Orthodox",     short: "SLA" },
+  { value: "legbreak",               label: "Leg Spin",              short: "LB"  },
+  { value: "legbreak googly",        label: "Leg Spin (Googly)",     short: "LBG" },
+  { value: "left-arm wrist-spin",    label: "Left Arm Wrist Spin",   short: "LWS" },
 ];
 
-const SPIN_TYPES = ["Off Spin", "Leg Spin", "Left Arm Orthodox", "Left Arm Wrist Spin", "All Spin"];
-const SEASONS = ["All Seasons", "2024", "2023", "2022", "2021", "2020"];
-const VENUES = ["All Venues", "Wankhede Stadium", "M. A. Chidambaram Stadium", "Eden Gardens", "Arun Jaitley Stadium", "Chinnaswamy Stadium"];
-const IPL_TEAMS = ["Chennai Super Kings", "Mumbai Indians", "Royal Challengers Bengaluru", "Kolkata Knight Riders", "Delhi Capitals", "Sunrisers Hyderabad", "Rajasthan Royals", "Punjab Kings", "Lucknow Super Giants", "Gujarat Titans"];
-const PHASES = ["Powerplay", "Middle Overs", "Death Overs"];
-
-const SPIN_BOWLERS = [
-  { id: 1, name: "Yuzvendra Chahal", type: "Leg Spin", team: "Rajasthan Royals" },
-  { id: 2, name: "Ravindra Jadeja", type: "Left Arm Orthodox", team: "Chennai Super Kings" },
-  { id: 3, name: "Varun Chakravarthy", type: "Off Spin", team: "Kolkata Knight Riders" },
-  { id: 4, name: "Kuldeep Yadav", type: "Left Arm Wrist Spin", team: "Delhi Capitals" },
-  { id: 5, name: "R. Ashwin", type: "Off Spin", team: "Chennai Super Kings" },
-  { id: 6, name: "Imran Tahir", type: "Leg Spin", team: "Chennai Super Kings" },
+// Phase values that match encoder_phase classes
+const PHASE_OPTIONS = [
+  { value: "Powerplay", label: "Powerplay"    },
+  { value: "Middle",    label: "Middle Overs" },
+  { value: "Death",     label: "Death Overs"  },
 ];
 
-function getPlayerStats(playerId) {
-  const seed = playerId * 13;
-  const rand = (min, max, s = 1) => Math.round((min + ((seed * s * 7919) % (max - min))) * 10) / 10;
-  return {
-    strikeRate: rand(95, 148),
-    dotBallPct: rand(22, 38),
-    boundaryPct: rand(14, 26),
-    dismissalRate: rand(8, 18),
-    avgRuns: rand(24, 48),
-    ballsPerDismissal: rand(18, 42),
-    spinComparison: [
-      { type: "Off Spin", sr: rand(100, 145, 1), avg: rand(28, 52, 1), balls: rand(80, 280, 1) },
-      { type: "Leg Spin", sr: rand(88, 135, 2), avg: rand(22, 45, 2), balls: rand(60, 220, 2) },
-      { type: "LA Orthodox", sr: rand(110, 155, 3), avg: rand(30, 55, 3), balls: rand(40, 180, 3) },
-      { type: "LA Wrist Spin", sr: rand(82, 130, 4), avg: rand(18, 42, 4), balls: rand(30, 140, 4) },
-    ],
-    runsDistribution: [
-      { name: "Singles", value: rand(38, 48, 1), color: "#22c55e" },
-      { name: "Twos", value: rand(8, 14, 2), color: "#3b82f6" },
-      { name: "Fours", value: rand(18, 28, 3), color: "#f59e0b" },
-      { name: "Sixes", value: rand(8, 16, 4), color: "#ef4444" },
-      { name: "Dots", value: rand(10, 18, 5), color: "#9ca3af" },
-    ],
-    seasonalTrend: [
-      { season: "2019", sr: rand(90, 130, 1), avg: rand(20, 40, 1) },
-      { season: "2020", sr: rand(92, 132, 2), avg: rand(22, 42, 2) },
-      { season: "2021", sr: rand(95, 140, 3), avg: rand(25, 45, 3) },
-      { season: "2022", sr: rand(100, 145, 4), avg: rand(28, 48, 4) },
-      { season: "2023", sr: rand(105, 150, 5), avg: rand(30, 50, 5) },
-      { season: "2024", sr: rand(108, 155, 6), avg: rand(32, 52, 6) },
-    ],
-    weaknesses: [
-      { type: "Leg Spin", severity: "high", dismissals: rand(8, 18, 2) },
-      { type: "Left Arm Wrist Spin", severity: "medium", dismissals: rand(5, 12, 3) },
-      { type: "Off Spin", severity: "low", dismissals: rand(3, 8, 1) },
-    ],
-    dismissalTypes: [
-      { name: "Caught", value: 42, color: "#ef4444" },
-      { name: "LBW", value: 24, color: "#f59e0b" },
-      { name: "Bowled", value: 18, color: "#3b82f6" },
-      { name: "Stumped", value: 16, color: "#8b5cf6" },
-    ],
-  };
+const PIE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#9ca3af"];
+const CHART_COLORS = ["#1a7340", "#f97316", "#3b82f6", "#8b5cf6", "#ef4444"];
+
+// ─── API HELPERS ───────────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, opts);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
-const SAVED_PREDICTIONS = [
-  { id: 1, match: "RCB vs RR", date: "Apr 14, 2024", venue: "Chinnaswamy Stadium", batter: "Virat Kohli", predictedRuns: 42, actualRuns: 38, predictedSR: 135.5, actualSR: 122.6, dismissalProb: 68, dismissed: true, accuracy: "Partially Accurate" },
-  { id: 2, match: "MI vs CSK", date: "Apr 21, 2024", venue: "Wankhede Stadium", batter: "Rohit Sharma", predictedRuns: 31, actualRuns: 35, predictedSR: 118.2, actualSR: 134.6, dismissalProb: 52, dismissed: false, accuracy: "Accurate" },
-  { id: 3, match: "DC vs KKR", date: "May 1, 2024", venue: "Arun Jaitley Stadium", batter: "David Warner", predictedRuns: 28, actualRuns: 8, predictedSR: 109.4, actualSR: 57.1, dismissalProb: 74, dismissed: true, accuracy: "Inaccurate" },
-  { id: 4, match: "LSG vs GT", date: "May 8, 2024", venue: "Ekana Cricket Stadium", batter: "KL Rahul", predictedRuns: 45, actualRuns: 48, predictedSR: 140.6, actualSR: 137.2, dismissalProb: 45, dismissed: false, accuracy: "Accurate" },
-];
-
-// ─── AI CALL ───────────────────────────────────────────────────────────────────
 async function callClaude(prompt, onToken) {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -127,13 +65,12 @@ async function callClaude(prompt, onToken) {
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const lines = decoder.decode(value).split("\n");
-    for (const line of lines) {
+    for (const line of decoder.decode(value).split("\n")) {
       if (line.startsWith("data: ")) {
         try {
-          const data = JSON.parse(line.slice(6));
-          if (data.type === "content_block_delta" && data.delta?.text) {
-            fullText += data.delta.text;
+          const d = JSON.parse(line.slice(6));
+          if (d.type === "content_block_delta" && d.delta?.text) {
+            fullText += d.delta.text;
             onToken(fullText);
           }
         } catch {}
@@ -143,9 +80,9 @@ async function callClaude(prompt, onToken) {
   return fullText;
 }
 
-// ─── HELPERS ────────────────────────────────────────────────────────────────────
-function initials(name) {
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+// ─── SHARED UI COMPONENTS ──────────────────────────────────────────────────────
+function initials(name = "?") {
+  return (name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
 function Avatar({ name, size = 40, color = G.green }) {
@@ -177,7 +114,7 @@ function KpiCard({ label, value, sub, icon, color = G.green }) {
       padding: "16px 18px", borderTop: `3px solid ${color}`,
     }}>
       <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1.1 }}>{value ?? "—"}</div>
       <div style={{ fontSize: 11, color: G.gray500, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{label}</div>
       {sub && <div style={{ fontSize: 11, color: G.gray400, marginTop: 2 }}>{sub}</div>}
     </div>
@@ -201,18 +138,23 @@ function Card({ children, style = {} }) {
   );
 }
 
-function Chip({ label, active, onClick, color = G.green }) {
+function Spinner({ text = "Loading…" }) {
   return (
-    <button onClick={onClick} style={{
-      padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600,
-      fontFamily: "'Barlow Condensed', sans-serif", cursor: "pointer", border: "none",
-      background: active ? color : G.gray100, color: active ? "#fff" : G.gray600,
-      transition: "all 0.15s", letterSpacing: 0.3,
-    }}>{label}</button>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "40px 0", justifyContent: "center", color: G.gray400, fontSize: 13 }}>
+      <div style={{ width: 18, height: 18, border: `2px solid ${G.gray200}`, borderTop: `2px solid ${G.green}`, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+      {text}
+    </div>
   );
 }
 
-const CHART_COLORS = ["#1a7340", "#f97316", "#3b82f6", "#8b5cf6", "#ef4444"];
+function EmptyState({ icon = "🏏", text }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", gap: 12, color: G.gray400 }}>
+      <div style={{ fontSize: 40, opacity: 0.4 }}>{icon}</div>
+      <div style={{ fontSize: 13, textAlign: "center", maxWidth: 280, lineHeight: 1.6 }}>{text}</div>
+    </div>
+  );
+}
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -230,8 +172,8 @@ function CustomTooltip({ active, payload, label }) {
 function Sidebar({ page, setPage, collapsed, setCollapsed }) {
   const navItems = [
     { id: "dashboard", label: "Analysis Dashboard", icon: "📊" },
-    { id: "prediction", label: "Match Prediction", icon: "🔮" },
-    { id: "saved", label: "Saved Predictions", icon: "📋" },
+    { id: "prediction", label: "Match Prediction",  icon: "🔮" },
+    { id: "saved",      label: "Saved Predictions", icon: "📋" },
   ];
   return (
     <aside style={{
@@ -275,9 +217,11 @@ function Sidebar({ page, setPage, collapsed, setCollapsed }) {
 }
 
 // ─── TOPBAR ────────────────────────────────────────────────────────────────────
-function Topbar({ page }) {
+function Topbar({ page, apiStatus, batterCount }) {
   const titles = { dashboard: "Batter Analysis Dashboard", prediction: "Match Prediction", saved: "Saved Predictions & AI Review" };
-  const subs = { dashboard: "Spin bowling matchup analysis", prediction: "AI-powered performance forecast", saved: "Prediction accuracy tracker" };
+  const subs   = { dashboard: "Spin bowling matchup analysis", prediction: "AI-powered performance forecast", saved: "Prediction accuracy tracker" };
+  const dotColor = apiStatus === "connected" ? G.green : apiStatus === "checking" ? G.amber : G.red;
+  const statusLabel = apiStatus === "connected" ? `Connected · ${batterCount} batters` : apiStatus === "checking" ? "Connecting…" : "API Offline";
   return (
     <div style={{
       height: 58, background: G.white, borderBottom: `2px solid ${G.green}`,
@@ -288,9 +232,9 @@ function Topbar({ page }) {
         <div style={{ fontSize: 18, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3, lineHeight: 1.2 }}>{titles[page]}</div>
         <div style={{ fontSize: 11, color: G.gray500 }}>{subs[page]}</div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: G.greenMid }} />
-        <span style={{ fontSize: 12, color: G.gray500, fontFamily: "'Barlow Condensed', sans-serif" }}>IPL 2025 Season</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", border: `1px solid ${G.gray200}`, borderRadius: 20 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor }} />
+        <span style={{ fontSize: 11, color: G.gray500, fontFamily: "'Barlow Condensed', sans-serif" }}>{statusLabel}</span>
       </div>
       <Badge label="AI-Powered" color="#fff" bg={G.green} />
     </div>
@@ -298,22 +242,23 @@ function Topbar({ page }) {
 }
 
 // ─── AI INSIGHT BOX ────────────────────────────────────────────────────────────
-function AIInsightBox({ prompt, triggerKey }) {
-  const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+function AIInsightBox({ prompt, triggerKey, disabled }) {
+  const [text, setText]         = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
   const [generated, setGenerated] = useState(false);
 
   const generate = useCallback(async () => {
+    if (disabled) return;
     setLoading(true); setError(null); setText(""); setGenerated(false);
     try {
-      await callClaude(prompt, (t) => setText(t));
+      await callClaude(prompt, t => setText(t));
       setGenerated(true);
-    } catch (e) {
+    } catch {
       setError("AI unavailable. Please ensure the Anthropic API is configured.");
     }
     setLoading(false);
-  }, [prompt]);
+  }, [prompt, disabled]);
 
   useEffect(() => { setGenerated(false); setText(""); }, [triggerKey]);
 
@@ -324,383 +269,507 @@ function AIInsightBox({ prompt, triggerKey }) {
           <span style={{ fontSize: 18 }}>✨</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Insight</span>
         </div>
-        <button onClick={generate} disabled={loading} style={{
-          padding: "6px 14px", background: G.green, color: "#fff", border: "none",
-          borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+        <button onClick={generate} disabled={loading || disabled} style={{
+          padding: "6px 14px", background: disabled ? G.gray300 : G.green, color: "#fff", border: "none",
+          borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: (loading || disabled) ? "not-allowed" : "pointer",
           fontFamily: "'Barlow Condensed', sans-serif", opacity: loading ? 0.7 : 1,
         }}>{loading ? "Generating…" : generated ? "Refresh" : "Generate Insight"}</button>
       </div>
       {error && <div style={{ color: G.red, fontSize: 13 }}>{error}</div>}
       {loading && !text && (
         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {[0, 1, 2].map(i => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: G.green, opacity: 0.4, animation: `blink 1.2s ${i * 0.2}s infinite` }} />)}
+          {[0,1,2].map(i => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: G.green, opacity: 0.4, animation: `blink 1.2s ${i*0.2}s infinite` }} />)}
           <span style={{ fontSize: 13, color: G.gray500, marginLeft: 6 }}>Analyzing performance data…</span>
         </div>
       )}
       {text && <p style={{ fontSize: 13.5, color: G.gray700, lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>{text}</p>}
       {!text && !loading && !error && (
-        <p style={{ fontSize: 13, color: G.gray400, margin: 0, fontStyle: "italic" }}>Click "Generate Insight" to get AI-powered cricket analysis for this player and matchup.</p>
+        <p style={{ fontSize: 13, color: G.gray400, margin: 0, fontStyle: "italic" }}>
+          {disabled ? "Select a player to enable AI insight." : "Click \"Generate Insight\" to get AI-powered cricket analysis."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── PLAYER SEARCH (shared) ────────────────────────────────────────────────────
+function PlayerSearch({ players, selected, onSelect, placeholder = "Search IPL Batter…" }) {
+  const [q, setQ]       = useState(selected ? (selected.longName || selected.Name || "") : "");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (selected) setQ(selected.longName || selected.Name || "");
+  }, [selected?.ID]);
+
+  const filtered = useMemo(() => {
+    if (!players?.length) return [];
+    const lq = q.toLowerCase();
+    return players.filter(p =>
+      (p.longName || "").toLowerCase().includes(lq) ||
+      (p.Name || "").toLowerCase().includes(lq)
+    ).slice(0, 14);
+  }, [q, players]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16 }}>🔍</span>
+      <input
+        value={q}
+        onChange={e => { setQ(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 180)}
+        placeholder={placeholder}
+        style={{
+          width: "100%", padding: "11px 14px 11px 40px", borderRadius: 10,
+          border: `1.5px solid ${G.gray300}`, fontSize: 14, outline: "none",
+          background: G.white, fontFamily: "'Barlow Condensed', sans-serif",
+          transition: "border-color 0.15s",
+        }}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 10,
+          zIndex: 200, maxHeight: 260, overflowY: "auto",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+        }}>
+          {filtered.map(p => (
+            <div key={p.ID} onMouseDown={() => { onSelect(p); setOpen(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${G.gray100}` }}
+              onMouseEnter={e => e.currentTarget.style.background = G.greenLight}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <Avatar name={p.longName || p.Name} size={34} color={G.green} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{p.longName || p.Name}</div>
+                <div style={{ fontSize: 11, color: G.gray500 }}>{p.longBattingStyles || "Batter"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
 // ─── PAGE 1: DASHBOARD ─────────────────────────────────────────────────────────
-function DashboardPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState(PLAYERS[0]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [spinType, setSpinType] = useState("All Spin");
-  const [season, setSeason] = useState("All Seasons");
-  const [venue, setVenue] = useState("All Venues");
-  const searchRef = useRef(null);
+function DashboardPage({ players, venues, apiOk }) {
+  const [player,    setPlayer]    = useState(null);
+  const [stats,     setStats]     = useState(null);
+  const [statsLoad, setStatsLoad] = useState(false);
+  const [spinType,  setSpinType]  = useState("All Spin");
+  const [season,    setSeason]    = useState("All Seasons");
+  const [venue,     setVenue]     = useState("All Venues");
 
-  const filtered = PLAYERS.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.team.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Load stats when player changes
+useEffect(() => {
+  if (!player || !apiOk) { setStats(null); return; }
+  setStatsLoad(true); setStats(null);
 
-  const stats = getPlayerStats(selectedPlayer.id);
-  const aiKey = `${selectedPlayer.id}-${spinType}-${season}-${venue}`;
-  const aiPrompt = `You are an expert IPL cricket analyst. Analyze ${selectedPlayer.name}'s batting performance against spin bowling in detail. 
-Player: ${selectedPlayer.name}, Team: ${selectedPlayer.team}, Style: ${selectedPlayer.style}
-Stats vs Spin — Strike Rate: ${stats.strikeRate}, Average: ${stats.avgRuns}, Dot Ball %: ${stats.dotBallPct}%, Boundary %: ${stats.boundaryPct}%, Dismissal Rate: ${stats.dismissalRate}%
-Filter: ${spinType}, Season: ${season}, Venue: ${venue}
+  const params = new URLSearchParams();
+  if (season !== "All Seasons") params.set("season", season);
+  if (spinType !== "All Spin") {
+    const spinVal = SPIN_TYPE_OPTIONS.find(s => s.label === spinType)?.value;
+    if (spinVal) params.set("spin_type", spinVal);
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
 
-Provide 4-5 sentences covering:
-1. Overall assessment vs spin
-2. Key strengths and weaknesses
-3. Most vulnerable spin type and why
-4. Recommended bowling strategy
-5. Fantasy cricket recommendation
+  apiFetch(`/player-stats/${player.ID}${query}`)
+    .then(d => { setStats(d.error ? null : d); setStatsLoad(false); })
+    .catch(() => setStatsLoad(false));
+}, [player?.ID, apiOk, season, spinType]);
 
-Be specific, use actual cricket terminology, and mention the stats provided.`;
+  // Build weakness list from spinComparison — sorted by dismissalProb descending
+  const weaknesses = useMemo(() => {
+    if (!stats?.spinComparison?.length) return [];
+    return [...stats.spinComparison]
+      .sort((a, b) => b.dismissalProb - a.dismissalProb)
+      .map((s, i) => ({
+        type: s.type,
+        severity: i === 0 ? "high" : i === 1 ? "medium" : "low",
+        dismissalProb: s.dismissalProb,
+        sr: s.sr,
+      }));
+  }, [stats]);
+
+  // runsDistribution colours
+  const runsDistWithColors = useMemo(() => {
+    if (!stats?.runsDistribution) return [];
+    return stats.runsDistribution.map((d, i) => ({ ...d, color: PIE_COLORS[i] }));
+  }, [stats]);
+
+  // spinComparison filtered by selected spin type
+  const filteredSpin = useMemo(() => {
+    if (!stats?.spinComparison) return [];
+    if (spinType === "All Spin") return stats.spinComparison;
+   return stats.spinComparison.filter(s =>
+  s.type?.toLowerCase() === spinType.toLowerCase()
+);
+  }, [stats, spinType]);
+
+  const aiKey    = `${player?.ID}-${spinType}-${season}-${venue}`;
+  const aiPrompt = player && stats
+    ? `You are an expert IPL cricket analyst. Analyze ${player.longName || player.Name}'s batting performance against spin bowling.
+Player: ${player.longName || player.Name}, Style: ${player.longBattingStyles || ""}
+Stats vs Spin — SR: ${stats.sr}, Avg: ${stats.avg}, Dot%: ${stats.dot_pct}%, Boundary%: ${stats.boundary_pct}%, Wicket Rate: ${stats.wkt_rate}%
+Cluster archetype: ${stats.cluster_name}. Filter: ${spinType}, Season: ${season}, Venue: ${venue}
+Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesses, most vulnerable spin type, and a fantasy cricket recommendation. Use cricket terminology.`
+    : "";
+
+  if (!apiOk) return <EmptyState icon="🔌" text="Flask API is offline. Start it with: python app.py" />;
 
   return (
     <div>
-      {/* Search */}
+      {/* Search Bar */}
       <div style={{ padding: "20px 24px", background: G.gray50, borderBottom: `1px solid ${G.gray200}` }}>
-        <div style={{ maxWidth: 600, position: "relative" }} ref={searchRef}>
-          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16 }}>🔍</span>
-          <input
-            value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); setShowDropdown(true); }}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 180)}
-            placeholder="Search IPL Batter…"
-            style={{
-              width: "100%", padding: "11px 14px 11px 40px", borderRadius: 10,
-              border: `1.5px solid ${G.gray300}`, fontSize: 14, outline: "none",
-              background: G.white, fontFamily: "'Barlow Condensed', sans-serif",
-              transition: "border-color 0.15s",
-            }}
-            onFocus2={e => { e.target.style.borderColor = G.green; setShowDropdown(true); }}
-          />
-          {showDropdown && filtered.length > 0 && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-              background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 10,
-              zIndex: 200, maxHeight: 260, overflowY: "auto",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-            }}>
-              {filtered.map(p => (
-                <div key={p.id} onMouseDown={() => { setSelectedPlayer(p); setSearchQuery(p.name); setShowDropdown(false); }}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${G.gray100}` }}
-                  onMouseEnter={e => e.currentTarget.style.background = G.greenLight}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  <Avatar name={p.name} size={34} color={G.green} />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: G.gray500 }}>{p.team} · {p.style}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div style={{ maxWidth: 600 }}>
+          <PlayerSearch players={players} selected={player} onSelect={p => { setPlayer(p); }} />
         </div>
       </div>
 
       <div style={{ padding: "24px" }}>
-        {/* Player Hero */}
-        <div style={{
-          background: `linear-gradient(135deg, ${G.gray900} 0%, #0f2d1c 100%)`,
-          borderRadius: 14, padding: "24px", marginBottom: 20, position: "relative", overflow: "hidden",
-        }}>
-          <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: `${G.green}20`, borderRadius: "50%", transform: "translate(60px,-60px)" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative" }}>
-            <Avatar name={selectedPlayer.name} size={72} color={G.green} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: G.white, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5 }}>{selectedPlayer.name}</div>
-              <div style={{ fontSize: 14, color: G.greenMid, fontWeight: 600, marginTop: 2 }}>{selectedPlayer.team}</div>
-              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                <Badge label={selectedPlayer.style} color={G.white} bg={`${G.green}80`} />
-                <Badge label={selectedPlayer.role} color={G.white} bg="rgba(255,255,255,0.15)" />
-                <Badge label={`Age ${selectedPlayer.age}`} color={G.white} bg="rgba(255,255,255,0.1)" />
-              </div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 36, fontWeight: 800, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1 }}>{stats.strikeRate}</div>
-              <div style={{ fontSize: 11, color: G.gray400, textTransform: "uppercase", letterSpacing: 1 }}>SR vs Spin</div>
-            </div>
-          </div>
-        </div>
+        {!player && <EmptyState icon="🔍" text="Search and select an IPL batter above to load their spin bowling analytics." />}
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: G.gray600, fontFamily: "'Barlow Condensed', sans-serif" }}>Filters:</span>
-          {[
-            { label: "Spin Type", value: spinType, options: SPIN_TYPES, set: setSpinType },
-            { label: "Season", value: season, options: SEASONS, set: setSeason },
-            { label: "Venue", value: venue, options: VENUES, set: setVenue },
-          ].map(f => (
-            <select key={f.label} value={f.value} onChange={e => f.set(e.target.value)} style={{
-              padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`,
-              fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white,
-              color: G.gray700, cursor: "pointer", outline: "none",
+        {player && (
+          <>
+            {/* Player Hero */}
+            <div style={{
+              background: `linear-gradient(135deg, ${G.gray900} 0%, #0f2d1c 100%)`,
+              borderRadius: 14, padding: "24px", marginBottom: 20, position: "relative", overflow: "hidden",
             }}>
-              {f.options.map(o => <option key={o}>{o}</option>)}
-            </select>
-          ))}
-        </div>
-
-        {/* KPI Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
-          <KpiCard label="Strike Rate vs Spin" value={stats.strikeRate} icon="⚡" color={G.green} />
-          <KpiCard label="Dot Ball %" value={`${stats.dotBallPct}%`} icon="⚫" color="#6b7280" />
-          <KpiCard label="Boundary %" value={`${stats.boundaryPct}%`} icon="🏏" color={G.accent} />
-          <KpiCard label="Dismissal Rate" value={`${stats.dismissalRate}%`} icon="🎯" color={G.red} />
-          <KpiCard label="Average vs Spin" value={stats.avgRuns} icon="📈" color={G.blue} />
-          <KpiCard label="Balls / Dismissal" value={stats.ballsPerDismissal} icon="🔢" color="#8b5cf6" />
-        </div>
-
-        {/* Charts Row 1 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <Card>
-            <SectionTitle icon="🥧">Runs Distribution</SectionTitle>
-            <div style={{ height: 220, display: "flex", alignItems: "center", gap: 16 }}>
-              <ResponsiveContainer width="60%" height="100%">
-                <PieChart>
-                  <Pie data={stats.runsDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
-                    {stats.runsDistribution.map((d, i) => <Cell key={i} fill={d.color} />)}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ flex: 1 }}>
-                {stats.runsDistribution.map((d, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: G.gray600, flex: 1 }}>{d.name}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{d.value}%</span>
+              <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: `${G.green}20`, borderRadius: "50%", transform: "translate(60px,-60px)" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative" }}>
+                <Avatar name={player.longName || player.Name} size={72} color={G.green} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: G.white, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5 }}>{player.longName || player.Name}</div>
+                  <div style={{ fontSize: 14, color: G.greenMid, fontWeight: 600, marginTop: 2 }}>{player.longTeamNames || ""}</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    {player.longBattingStyles && <Badge label={player.longBattingStyles} color={G.white} bg={`${G.green}80`} />}
+                    {stats?.cluster_name && <Badge label={stats.cluster_name} color={G.white} bg="rgba(255,255,255,0.15)" />}
                   </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <SectionTitle icon="📊">Performance by Spin Type</SectionTitle>
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.spinComparison} barGap={2}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
-                  <XAxis dataKey="type" tick={{ fill: G.gray500, fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: G.gray500, fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
-                  <Bar dataKey="sr" name="Strike Rate" fill={G.green} radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="avg" name="Average" fill={G.accent} radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
-
-        {/* Historical Trend */}
-        <Card style={{ marginBottom: 16 }}>
-          <SectionTitle icon="📈">Historical IPL Performance vs Spin</SectionTitle>
-          <div style={{ height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.seasonalTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
-                <XAxis dataKey="season" tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
-                <Line type="monotone" dataKey="sr" name="Strike Rate" stroke={G.green} strokeWidth={2.5} dot={{ fill: G.green, r: 4 }} />
-                <Line type="monotone" dataKey="avg" name="Average" stroke={G.accent} strokeWidth={2.5} dot={{ fill: G.accent, r: 4 }} strokeDasharray="5 3" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        {/* Weakness + Dismissal Analysis */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <Card>
-            <SectionTitle icon="⚠️">Weakness Analysis</SectionTitle>
-            {stats.weaknesses.map((w, i) => (
-              <div key={i} style={{
-                padding: "12px 14px", borderRadius: 8, marginBottom: 8,
-                background: w.severity === "high" ? G.redLight : w.severity === "medium" ? G.amberLight : G.greenLight,
-                border: `1px solid ${w.severity === "high" ? "#fca5a5" : w.severity === "medium" ? "#fcd34d" : "#86efac"}`,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{w.type}</span>
-                  <Badge
-                    label={w.severity === "high" ? "Most Vulnerable" : w.severity === "medium" ? "Moderate Risk" : "Comfortable"}
-                    color={w.severity === "high" ? G.red : w.severity === "medium" ? G.amber : G.green}
-                    bg={w.severity === "high" ? "#fee2e2" : w.severity === "medium" ? "#fef3c7" : G.greenLight}
-                  />
                 </div>
-                <div style={{ fontSize: 12, color: G.gray500, marginTop: 4 }}>{w.dismissals} dismissals across IPL seasons</div>
+                {stats && (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1 }}>{stats.sr}</div>
+                    <div style={{ fontSize: 11, color: G.gray400, textTransform: "uppercase", letterSpacing: 1 }}>SR vs Spin</div>
+                  </div>
+                )}
               </div>
-            ))}
-          </Card>
-
-          <Card>
-            <SectionTitle icon="🎯">Dismissal Analysis</SectionTitle>
-            <div style={{ height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={stats.dismissalTypes} cx="50%" cy="50%" outerRadius={70} dataKey="value" paddingAngle={2}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
-                    {stats.dismissalTypes.map((d, i) => <Cell key={i} fill={d.color} />)}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
             </div>
-          </Card>
-        </div>
 
-        {/* AI Insight */}
-        <AIInsightBox prompt={aiPrompt} triggerKey={aiKey} />
+            {/* Filters */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: G.gray600, fontFamily: "'Barlow Condensed', sans-serif" }}>Filters:</span>
+              <select value={spinType} onChange={e => setSpinType(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: "pointer", outline: "none" }}>
+                <option>All Spin</option>
+                {SPIN_TYPE_OPTIONS.map(s => <option key={s.value}>{s.label}</option>)}
+              </select>
+              <select value={season} onChange={e => setSeason(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: "pointer", outline: "none" }}>
+                <option>All Seasons</option>
+                {["2025","2024","2023","2022","2021","2020","2019"].map(s => <option key={s}>{s}</option>)}
+              </select>
+              <select value={venue} onChange={e => setVenue(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: "pointer", outline: "none" }}>
+                <option>All Venues</option>
+                {venues.map(v => <option key={v}>{v}</option>)}
+              </select>
+            </div>
 
-        {/* Strengths / Weaknesses Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-          <Card style={{ borderTop: `3px solid ${G.green}` }}>
-            <SectionTitle icon="💪">Key Strengths</SectionTitle>
-            {["Exceptional timing against Off Spin", "High boundary percentage in Powerplay", "Consistent average across seasons"].map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <span style={{ color: G.green, fontWeight: 700, flexShrink: 0 }}>✓</span>
-                <span style={{ fontSize: 13, color: G.gray700 }}>{s}</span>
-              </div>
-            ))}
-          </Card>
-          <Card style={{ borderTop: `3px solid ${G.red}` }}>
-            <SectionTitle icon="⚡">Key Weaknesses</SectionTitle>
-            {["Struggles against Leg Spin in Death Overs", "High dot ball percentage vs Wrist Spin", "Dismissal frequency rises in middle overs"].map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <span style={{ color: G.red, fontWeight: 700, flexShrink: 0 }}>✗</span>
-                <span style={{ fontSize: 13, color: G.gray700 }}>{s}</span>
-              </div>
-            ))}
-          </Card>
-        </div>
+            {statsLoad && <Spinner text="Loading player stats…" />}
+
+            {stats && (
+              <>
+                {/* KPI Cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
+                  <KpiCard label="Strike Rate vs Spin" value={stats.sr}                      icon="⚡" color={G.green} />
+                  <KpiCard label="Dot Ball %"           value={`${stats.dot_pct}%`}           icon="⚫" color={G.gray500} />
+                  <KpiCard label="Boundary %"           value={`${stats.boundary_pct}%`}      icon="🏏" color={G.accent} />
+                  <KpiCard label="Wicket Rate"          value={`${stats.wkt_rate}%`}          icon="🎯" color={G.red} />
+                  <KpiCard label="Average vs Spin"      value={stats.avg}                     icon="📈" color={G.blue} />
+                  <KpiCard label="Total Balls Faced"    value={stats.balls}                   icon="🔢" color="#8b5cf6" />
+                </div>
+
+                {/* Charts Row 1 */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                  {/* Runs Distribution Pie */}
+                  <Card>
+                    <SectionTitle icon="🥧">Runs Distribution</SectionTitle>
+                    <div style={{ height: 220, display: "flex", alignItems: "center", gap: 16 }}>
+                      <ResponsiveContainer width="60%" height="100%">
+                        <PieChart>
+                          <Pie data={runsDistWithColors} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                            {runsDistWithColors.map((d, i) => <Cell key={i} fill={d.color} />)}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div style={{ flex: 1 }}>
+                        {runsDistWithColors.map((d, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+                            <span style={{ fontSize: 12, color: G.gray600, flex: 1 }}>{d.name}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{d.value}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Spin Type Comparison Bar */}
+                  <Card>
+                    <SectionTitle icon="📊">Performance by Spin Type</SectionTitle>
+                    <div style={{ height: 220 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={filteredSpin.length ? filteredSpin : stats.spinComparison} barGap={2}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
+                          <XAxis dataKey="short" tick={{ fill: G.gray500, fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: G.gray500, fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
+                          <Bar dataKey="sr"  name="Strike Rate" fill={G.green}  radius={[3,3,0,0]} />
+                          <Bar dataKey="avg" name="Average"     fill={G.accent} radius={[3,3,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Historical Trend */}
+                {stats.seasons?.length > 0 && (
+                  <Card style={{ marginBottom: 16 }}>
+                    <SectionTitle icon="📈">Historical IPL Performance vs Spin</SectionTitle>
+                    <div style={{ height: 220 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stats.seasons}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
+                          <XAxis dataKey="season" tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
+                          <Line type="monotone" dataKey="sr"  name="Strike Rate" stroke={G.green}  strokeWidth={2.5} dot={{ fill: G.green,  r: 4 }} />
+                          <Line type="monotone" dataKey="avg" name="Average"     stroke={G.accent} strokeWidth={2.5} dot={{ fill: G.accent, r: 4 }} strokeDasharray="5 3" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Phase Breakdown */}
+                {stats.phases?.length > 0 && (
+                  <Card style={{ marginBottom: 16 }}>
+                    <SectionTitle icon="🕐">Performance by Phase</SectionTitle>
+                    <div style={{ height: 200 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.phases}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
+                          <XAxis dataKey="phase" tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend wrapperStyle={{ fontSize: 11 }} />
+                          <Bar dataKey="sr"  name="Strike Rate" fill={G.green}  radius={[3,3,0,0]} />
+                          <Bar dataKey="avg" name="Average"     fill={G.blue}   radius={[3,3,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Weakness + Dismissal */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                  <Card>
+                    <SectionTitle icon="⚠️">Weakness Analysis</SectionTitle>
+                    {weaknesses.map((w, i) => (
+                      <div key={i} style={{
+                        padding: "12px 14px", borderRadius: 8, marginBottom: 8,
+                        background: w.severity === "high" ? G.redLight : w.severity === "medium" ? G.amberLight : G.greenLight,
+                        border: `1px solid ${w.severity === "high" ? "#fca5a5" : w.severity === "medium" ? "#fcd34d" : "#86efac"}`,
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{w.type}</span>
+                          <Badge
+                            label={w.severity === "high" ? "Most Vulnerable" : w.severity === "medium" ? "Moderate Risk" : "Comfortable"}
+                            color={w.severity === "high" ? G.red : w.severity === "medium" ? G.amber : G.green}
+                            bg={w.severity === "high" ? "#fee2e2" : w.severity === "medium" ? "#fef3c7" : G.greenLight}
+                          />
+                        </div>
+                        <div style={{ fontSize: 12, color: G.gray500, marginTop: 4 }}>
+                          SR {w.sr} · Dismissal prob {(w.dismissalProb * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                    ))}
+                  </Card>
+
+                  <Card>
+                    <SectionTitle icon="🎯">Dismissal Analysis</SectionTitle>
+                    <div style={{ height: 180 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={stats.dismissals} cx="50%" cy="50%" outerRadius={70} dataKey="value" paddingAngle={2}
+                            label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false} fontSize={10}>
+                            {stats.dismissals.map((d, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* AI Insight */}
+                <AIInsightBox prompt={aiPrompt} triggerKey={aiKey} disabled={!player || !stats} />
+
+                {/* Form SR */}
+                {stats.form_sr_last5 && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+                    <Card style={{ borderTop: `3px solid ${G.green}` }}>
+                      <SectionTitle icon="🔥">Recent Form</SectionTitle>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>{stats.form_sr_last5}</div>
+                      <div style={{ fontSize: 12, color: G.gray500, marginTop: 4 }}>Strike Rate (last 5 innings vs spin)</div>
+                      <div style={{ fontSize: 12, color: G.gray600, marginTop: 8 }}>Career SR vs spin: <strong>{stats.sr}</strong></div>
+                    </Card>
+                    <Card style={{ borderTop: `3px solid ${G.blue}` }}>
+                      <SectionTitle icon="🧠">Batter Archetype</SectionTitle>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: G.blue, fontFamily: "'Barlow Condensed', sans-serif" }}>{stats.cluster_name}</div>
+                      <div style={{ fontSize: 12, color: G.gray500, marginTop: 8 }}>Rotation: {stats.rotation_pct}% · Six rate: {stats.six_pct}%</div>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── PAGE 2: MATCH PREDICTION ──────────────────────────────────────────────────
-function PredictionPage() {
-  const [batter, setBatter] = useState(PLAYERS[0]);
-  const [venue, setVenue] = useState(VENUES[1]);
-  const [oppTeam, setOppTeam] = useState(IPL_TEAMS[0]);
-  const [phase, setPhase] = useState("Middle Overs");
-  const [selectedBowlers, setSelectedBowlers] = useState([]);
-  const [predResult, setPredResult] = useState(null);
+function PredictionPage({ players, venues, teams, spinBowlers, apiOk }) {
+  const [player,      setPlayer]      = useState(null);
+  const [playerStats, setPlayerStats] = useState(null);
+  const [venue,       setVenue]       = useState("");
+  const [oppTeam,     setOppTeam]     = useState("");
+  const [phase,       setPhase]       = useState("Middle");
+  const [spinType,    setSpinType]    = useState("right-arm offbreak");
+  const [innings,     setInnings]     = useState(1);
+  const [nBalls,      setNBalls]      = useState(12);
+  const [predResult,  setPredResult]  = useState(null);
   const [predLoading, setPredLoading] = useState(false);
-  const [aiPredText, setAiPredText] = useState("");
-  const [aiPredLoading, setAiPredLoading] = useState(false);
-  const [batSearch, setBatSearch] = useState(PLAYERS[0].name);
-  const [batOpen, setBatOpen] = useState(false);
+  const [aiPredText,  setAiPredText]  = useState("");
+  const [aiPredLoad,  setAiPredLoad]  = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [saveMsg,     setSaveMsg]     = useState("");
 
-  const toggleBowler = (b) => setSelectedBowlers(prev => prev.some(x => x.id === b.id) ? prev.filter(x => x.id !== b.id) : [...prev, b]);
+  // Init venue & team when lists load
+  useEffect(() => { if (venues.length && !venue) setVenue(venues[0]); }, [venues]);
+  useEffect(() => { if (teams.length  && !oppTeam) setOppTeam(teams[0]); }, [teams]);
+
+  // Load player stats when player selected
+  useEffect(() => {
+    if (!player || !apiOk) { setPlayerStats(null); return; }
+    apiFetch(`/player-stats/${player.ID}`)
+      .then(d => setPlayerStats(d.error ? null : d))
+      .catch(() => {});
+  }, [player?.ID, apiOk]);
 
   const generate = async () => {
-    if (selectedBowlers.length === 0) return;
-    setPredLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    const stats = getPlayerStats(batter.id);
-    const sr = stats.strikeRate + (phase === "Powerplay" ? 12 : phase === "Death Overs" ? 18 : 0);
-    const balls = phase === "Powerplay" ? Math.round(18 + Math.random() * 10) : phase === "Death Overs" ? Math.round(6 + Math.random() * 6) : Math.round(14 + Math.random() * 12);
-    const runs = Math.round(balls * sr / 100);
-    const dismissalProb = Math.round(stats.dismissalRate + selectedBowlers.length * 3 + Math.random() * 10);
-    const conf = Math.round(72 + Math.random() * 20);
-    const risk = dismissalProb > 65 ? "High Risk" : dismissalProb > 45 ? "Medium Risk" : "Low Risk";
-    setPredResult({ runs, balls, sr: sr.toFixed(1), dismissalProb: Math.min(90, dismissalProb), confidence: conf, risk });
-    setPredLoading(false);
-
-    setAiPredLoading(true); setAiPredText("");
-    const prompt = `You are an IPL cricket match predictor. Predict ${batter.name}'s performance against selected spin bowlers.
-Match Setup: vs ${oppTeam} at ${venue}, ${phase}
-Selected Bowlers: ${selectedBowlers.map(b => `${b.name} (${b.type})`).join(", ")}
-Predicted Stats: ${runs} runs off ${balls} balls, SR: ${sr.toFixed(1)}, Dismissal Prob: ${Math.min(90, dismissalProb)}%, Confidence: ${conf}%
-
-Explain in 3-4 sentences:
-1. Why this prediction was generated based on historical matchups
-2. Key tactical factors affecting the prediction
-3. What could cause the prediction to be wrong
-4. Fantasy cricket recommendation (Captain/VC or avoid)`;
-
+    if (!player) return;
+    setPredLoading(true); setPredResult(null); setAiPredText(""); setSaveMsg("");
     try {
-      await callClaude(prompt, t => setAiPredText(t));
-    } catch {}
-    setAiPredLoading(false);
+      const data = await apiFetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: player.ID, spin_type: spinType, phase, venue, innings, n_balls: nBalls }),
+      });
+      setPredResult(data);
+
+      // AI explanation
+      setAiPredLoad(true); setAiPredText("");
+      const spinLabel = SPIN_TYPE_OPTIONS.find(s => s.value === spinType)?.label || spinType;
+      const prompt = `You are an IPL cricket match predictor. Explain this prediction for ${player.longName || player.Name}:
+Match: vs ${oppTeam} at ${venue}, ${PHASE_OPTIONS.find(p=>p.value===phase)?.label}, Innings ${innings}
+Spin type: ${spinLabel}, Balls to predict: ${nBalls}
+Predicted: ${data.predicted_runs} runs, SR: ${data.predicted_sr}, Dismissal prob/ball: ${data.dismissal_prob_pct}%
+Expected runs (risk-adj): ${data.expected_runs}, Dismiss in spell: ${data.dismiss_in_spell_pct}%
+Confidence: ${data.confidence}%, Cluster: ${data.cluster_name}, Model: ${data.model_version}
+Explain in 3-4 sentences: why this was predicted, key tactical factors, what could make it wrong, and a fantasy cricket recommendation.`;
+      try { await callClaude(prompt, t => setAiPredText(t)); } catch {}
+      setAiPredLoad(false);
+    } catch (e) {
+      setPredResult({ error: e.message });
+    }
+    setPredLoading(false);
   };
 
-  const riskColor = predResult?.risk === "High Risk" ? G.red : predResult?.risk === "Medium Risk" ? G.amber : G.green;
-  const filteredBatters = PLAYERS.filter(p => p.name.toLowerCase().includes(batSearch.toLowerCase()));
+  const savePred = async () => {
+    if (!predResult || !player) return;
+    setSaving(true); setSaveMsg("");
+    try {
+      await apiFetch("/save-prediction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_id:      player.ID,
+          batter_name:    player.longName || player.Name,
+          match:          `${player.longName || player.Name} vs ${oppTeam}`,
+          venue, spin_type: spinType, phase, innings, n_balls: nBalls,
+          predicted_sr:   predResult.predicted_sr,
+          predicted_runs: predResult.predicted_runs,
+          dismissal_prob: predResult.dismissal_prob_pct,
+          confidence:     predResult.confidence,
+          cluster_name:   predResult.cluster_name,
+          model_version:  predResult.model_version,
+          ai_explanation: aiPredText,
+        }),
+      });
+      setSaveMsg("✅ Prediction saved!");
+    } catch { setSaveMsg("❌ Save failed."); }
+    setSaving(false);
+  };
+
+  const riskColor = predResult?.confidence >= 75 ? G.green : predResult?.confidence >= 55 ? G.amber : G.red;
+  const riskLabel = predResult?.confidence >= 75 ? "Low Risk" : predResult?.confidence >= 55 ? "Medium Risk" : "High Risk";
+
+  if (!apiOk) return <EmptyState icon="🔌" text="Flask API is offline. Start it to use Match Prediction." />;
 
   return (
     <div style={{ padding: "24px" }}>
       {/* Batter selector */}
       <Card style={{ marginBottom: 16 }}>
         <SectionTitle icon="🏏">Select Batter</SectionTitle>
-        <div style={{ position: "relative", maxWidth: 400 }}>
-          <input value={batSearch} onChange={e => { setBatSearch(e.target.value); setBatOpen(true); }}
-            onFocus={() => setBatOpen(true)} onBlur={() => setTimeout(() => setBatOpen(false), 160)}
-            placeholder="Search batter…"
-            style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${G.gray300}`, fontSize: 13, outline: "none", fontFamily: "'Barlow Condensed', sans-serif" }} />
-          {batOpen && filteredBatters.length > 0 && (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 8, zIndex: 200, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.1)" }}>
-              {filteredBatters.map(p => (
-                <div key={p.id} onMouseDown={() => { setBatter(p); setBatSearch(p.name); setBatOpen(false); setPredResult(null); setAiPredText(""); }}
-                  style={{ padding: "9px 12px", cursor: "pointer", fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", borderBottom: `1px solid ${G.gray100}` }}
-                  onMouseEnter={e => e.currentTarget.style.background = G.greenLight}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >{p.name} <span style={{ color: G.gray400, fontSize: 11 }}>· {p.team}</span></div>
-              ))}
-            </div>
-          )}
+        <div style={{ maxWidth: 500 }}>
+          <PlayerSearch players={players} selected={player} onSelect={p => { setPlayer(p); setPredResult(null); setAiPredText(""); }} />
         </div>
-        {batter && (
+        {player && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, padding: "12px 16px", background: G.greenLight, borderRadius: 8 }}>
-            <Avatar name={batter.name} size={48} color={G.green} />
+            <Avatar name={player.longName || player.Name} size={48} color={G.green} />
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{batter.name}</div>
-              <div style={{ fontSize: 12, color: G.gray500 }}>{batter.team} · {batter.style}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{player.longName || player.Name}</div>
+              <div style={{ fontSize: 12, color: G.gray500 }}>{player.longBattingStyles || "Batter"}</div>
             </div>
+            {playerStats && (
+              <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>{playerStats.sr}</div>
+                <div style={{ fontSize: 10, color: G.gray400, textTransform: "uppercase" }}>Career SR vs Spin</div>
+              </div>
+            )}
           </div>
         )}
       </Card>
 
-      {/* Match Inputs */}
+      {/* Match Setup */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <Card>
           <SectionTitle icon="🏟️">Venue & Opponent</SectionTitle>
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Venue</label>
             <select value={venue} onChange={e => setVenue(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
-              {VENUES.filter(v => v !== "All Venues").map(v => <option key={v}>{v}</option>)}
+              {venues.map(v => <option key={v}>{v}</option>)}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Opponent Team</label>
             <select value={oppTeam} onChange={e => setOppTeam(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
-              {IPL_TEAMS.map(t => <option key={t}>{t}</option>)}
+              {teams.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
         </Card>
@@ -708,67 +777,90 @@ Explain in 3-4 sentences:
         <Card>
           <SectionTitle icon="🕐">Match Phase</SectionTitle>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {PHASES.map(p => (
-              <div key={p} onClick={() => setPhase(p)} style={{
+            {PHASE_OPTIONS.map(p => (
+              <div key={p.value} onClick={() => setPhase(p.value)} style={{
                 padding: "11px 16px", borderRadius: 8, cursor: "pointer",
-                background: phase === p ? G.green : G.gray50,
-                color: phase === p ? G.white : G.gray700,
-                border: `1px solid ${phase === p ? G.green : G.gray200}`,
+                background: phase === p.value ? G.green : G.gray50,
+                color: phase === p.value ? G.white : G.gray700,
+                border: `1px solid ${phase === p.value ? G.green : G.gray200}`,
                 fontSize: 14, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif",
                 transition: "all 0.15s",
-              }}>{p}</div>
+              }}>{p.label}</div>
             ))}
           </div>
         </Card>
       </div>
 
-      {/* Bowler Selection */}
+      {/* Spin & Innings Setup */}
       <Card style={{ marginBottom: 16 }}>
-        <SectionTitle icon="🎳">Select Spin Bowlers</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-          {SPIN_BOWLERS.map(b => {
-            const sel = selectedBowlers.some(x => x.id === b.id);
-            return (
-              <div key={b.id} onClick={() => toggleBowler(b)} style={{
-                padding: "12px 14px", borderRadius: 10, cursor: "pointer",
-                border: `2px solid ${sel ? G.green : G.gray200}`,
-                background: sel ? G.greenLight : G.white, transition: "all 0.15s",
-              }}>
-                <Avatar name={b.name} size={36} color={sel ? G.green : G.gray400} />
-                <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{b.name}</div>
-                <div style={{ fontSize: 11, color: G.gray500, marginTop: 2 }}>{b.type}</div>
-                <div style={{ fontSize: 10, color: G.gray400 }}>{b.team}</div>
-              </div>
-            );
-          })}
+        <SectionTitle icon="🌀">Spin & Innings Setup</SectionTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Spin Type</label>
+            <select value={spinType} onChange={e => setSpinType(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
+              {SPIN_TYPE_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Innings</label>
+            <select value={innings} onChange={e => setInnings(Number(e.target.value))} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
+              <option value={1}>Innings 1</option>
+              <option value={2}>Innings 2</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Balls to Predict</label>
+            <select value={nBalls} onChange={e => setNBalls(Number(e.target.value))} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
+              {[6,12,18,24,30].map(n => <option key={n} value={n}>{n} balls</option>)}
+            </select>
+          </div>
         </div>
-        {selectedBowlers.length === 0 && (
-          <div style={{ fontSize: 12, color: G.amber, marginTop: 10, fontStyle: "italic" }}>⚠ Select at least one spin bowler to generate prediction</div>
-        )}
       </Card>
 
-      <button onClick={generate} disabled={predLoading || selectedBowlers.length === 0} style={{
-        width: "100%", padding: "14px", background: selectedBowlers.length === 0 ? G.gray300 : G.green, color: G.white,
-        border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: selectedBowlers.length === 0 ? "not-allowed" : "pointer",
-        fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5, marginBottom: 20, transition: "all 0.15s",
-      }}>{predLoading ? "⚙ Generating Prediction…" : "✨ Generate AI Prediction"}</button>
+      {/* Spin Bowlers Reference */}
+      {spinBowlers.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <SectionTitle icon="🎳">Spin Bowlers in Dataset <span style={{ fontWeight: 400, fontSize: 12, color: G.gray400 }}>({spinBowlers.length} total)</span></SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+            {spinBowlers.slice(0, 12).map(b => (
+              <div key={b.ID} style={{ padding: "12px 14px", borderRadius: 10, background: G.gray50, border: `1px solid ${G.gray200}` }}>
+                <Avatar name={b.longName || b.Name} size={36} color={G.green} />
+                <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{b.longName || b.Name}</div>
+                <div style={{ fontSize: 11, color: G.gray500, marginTop: 2 }}>{b.spinLabel}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
-      {/* Prediction Results */}
-      {predResult && (
+      {/* Generate Button */}
+      <button onClick={generate} disabled={predLoading || !player} style={{
+        width: "100%", padding: "14px", background: !player ? G.gray300 : G.green, color: G.white,
+        border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: !player ? "not-allowed" : "pointer",
+        fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5, marginBottom: 20, transition: "all 0.15s",
+      }}>{predLoading ? "⚙ Running Model…" : "✨ Generate AI Prediction"}</button>
+
+      {/* Error */}
+      {predResult?.error && (
+        <Card style={{ marginBottom: 16, borderLeft: `4px solid ${G.red}`, background: G.redLight }}>
+          <div style={{ color: G.red, fontSize: 13 }}>❌ Prediction failed: {predResult.error}</div>
+        </Card>
+      )}
+
+      {/* Results */}
+      {predResult && !predResult.error && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-            {[
-              { label: "Predicted Runs", value: predResult.runs, icon: "🏏", color: G.green },
-              { label: "Predicted Balls", value: predResult.balls, icon: "⚽", color: G.blue },
-              { label: "Strike Rate", value: predResult.sr, icon: "⚡", color: G.accent },
-              { label: "Dismissal Prob", value: `${predResult.dismissalProb}%`, icon: "🎯", color: G.red },
-            ].map(c => <KpiCard key={c.label} {...c} />)}
+            <KpiCard label="Predicted Runs"    value={predResult.predicted_runs}        icon="🏏" color={G.green} />
+            <KpiCard label="Strike Rate"       value={predResult.predicted_sr}          icon="⚡" color={G.blue} />
+            <KpiCard label="Dismissal Prob/ball" value={`${predResult.dismissal_prob_pct}%`} icon="🎯" color={G.red} />
+            <KpiCard label={`Dismiss in ${nBalls}b`} value={`${predResult.dismiss_in_spell_pct}%`} icon="💥" color={G.amber} />
           </div>
 
           <Card style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <SectionTitle icon="📊">Confidence Score</SectionTitle>
-              <Badge label={predResult.risk} color={riskColor === G.red ? G.red : riskColor === G.amber ? G.amber : G.green} bg={riskColor === G.red ? G.redLight : riskColor === G.amber ? G.amberLight : G.greenLight} />
+              <Badge label={riskLabel} color={riskColor} bg={riskColor === G.red ? G.redLight : riskColor === G.amber ? G.amberLight : G.greenLight} />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ fontSize: 36, fontWeight: 800, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", minWidth: 60 }}>{predResult.confidence}%</div>
@@ -776,19 +868,21 @@ Explain in 3-4 sentences:
                 <div style={{ height: 10, background: G.gray100, borderRadius: 5, overflow: "hidden" }}>
                   <div style={{ width: `${predResult.confidence}%`, height: "100%", background: `linear-gradient(90deg, ${G.green}, ${G.greenMid})`, borderRadius: 5, transition: "width 0.8s ease" }} />
                 </div>
-                <div style={{ fontSize: 11, color: G.gray400, marginTop: 4 }}>Model confidence based on historical matchup data</div>
+                <div style={{ fontSize: 11, color: G.gray400, marginTop: 4 }}>
+                  {predResult.model_version} model · {predResult.features_used} features · Cluster: {predResult.cluster_name}
+                </div>
               </div>
             </div>
           </Card>
 
-          {/* Matchup notes */}
+          {/* Matchup Notes */}
           <Card style={{ marginBottom: 16, borderLeft: `4px solid ${G.accent}` }}>
             <SectionTitle icon="💡">Matchup Analysis</SectionTitle>
             {[
-              `${batter.name} historically shows ${predResult.sr > 130 ? "strong" : "moderate"} performance in ${phase} against spin at ${venue}.`,
-              selectedBowlers.length > 0 ? `${selectedBowlers[0].name} (${selectedBowlers[0].type}) is a key threat — watch for flight and turn.` : null,
-              `Risk indicator: ${predResult.risk} — ${predResult.risk === "High Risk" ? "expect significant challenge from selected bowlers." : "conditions favour balanced performance."}`,
-            ].filter(Boolean).map((note, i) => (
+              `${player.longName || player.Name} predicted SR of ${predResult.predicted_sr} vs ${SPIN_TYPE_OPTIONS.find(s=>s.value===spinType)?.label} at ${venue} (${PHASE_OPTIONS.find(p=>p.value===phase)?.label}).`,
+              `Expected runs adjusted for dismissal risk: ${predResult.expected_runs} runs in ${nBalls} balls.`,
+              `${predResult.cluster_name} archetype — ${predResult.confidence >= 75 ? "high confidence prediction based on strong historical data." : predResult.confidence >= 55 ? "moderate confidence — some variability expected." : "low confidence — limited historical data for this matchup."}`,
+            ].map((note, i) => (
               <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 <span style={{ color: G.accent, flexShrink: 0 }}>→</span>
                 <span style={{ fontSize: 13, color: G.gray700 }}>{note}</span>
@@ -797,16 +891,22 @@ Explain in 3-4 sentences:
           </Card>
 
           {/* AI Explanation */}
-          <div style={{ background: G.greenLight, border: `1px solid ${G.green}30`, borderRadius: 12, padding: "18px 20px", borderLeft: `4px solid ${G.green}` }}>
+          <div style={{ background: G.greenLight, border: `1px solid ${G.green}30`, borderRadius: 12, padding: "18px 20px", borderLeft: `4px solid ${G.green}`, marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 18 }}>🤖</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Prediction Explanation</span>
             </div>
-            {aiPredLoading && !aiPredText && (
-              <div style={{ color: G.gray400, fontSize: 13 }}>Generating explanation…</div>
-            )}
+            {aiPredLoad && !aiPredText && <div style={{ color: G.gray400, fontSize: 13 }}>Generating explanation…</div>}
             {aiPredText && <p style={{ fontSize: 13.5, color: G.gray700, lineHeight: 1.8, margin: 0 }}>{aiPredText}</p>}
           </div>
+
+          {/* Save Button */}
+          <button onClick={savePred} disabled={saving || !!saveMsg} style={{
+            width: "100%", padding: "12px", background: saveMsg ? G.gray200 : G.gray800, color: saveMsg ? G.gray500 : G.white,
+            border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer",
+            fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 8, transition: "all 0.15s",
+          }}>{saving ? "Saving…" : "💾 Save Prediction"}</button>
+          {saveMsg && <div style={{ fontSize: 12, color: saveMsg.startsWith("✅") ? G.green : G.red, textAlign: "center" }}>{saveMsg}</div>}
         </>
       )}
     </div>
@@ -814,125 +914,191 @@ Explain in 3-4 sentences:
 }
 
 // ─── PAGE 3: SAVED PREDICTIONS ─────────────────────────────────────────────────
-function SavedPage() {
-  const [selected, setSelected] = useState(null);
-  const [aiReview, setAiReview] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
+function SavedPage({ apiOk }) {
+  const [preds,     setPreds]    = useState([]);
+  const [summary,   setSummary]  = useState(null);
+  const [loading,   setLoading]  = useState(false);
+  const [selected,  setSelected] = useState(null);
+  const [aiReview,  setAiReview] = useState("");
+  const [aiLoading, setAiLoad]   = useState(false);
+  // Update form
+  const [actualRuns, setActualRuns] = useState("");
+  const [actualSR,   setActualSR]   = useState("");
+  const [dismissed,  setDismissed]  = useState(false);
+  const [updMsg,     setUpdMsg]     = useState("");
 
-  const generateReview = async (pred) => {
-    setSelected(pred); setAiReview(""); setAiLoading(true);
-    const prompt = `You are an IPL cricket AI analyst reviewing prediction accuracy.
-Match: ${pred.match} at ${pred.venue}
-Batter: ${pred.batter}
-Predicted: ${pred.predictedRuns} runs, SR: ${pred.predictedSR}, Dismissal Prob: ${pred.dismissalProb}%
-Actual: ${pred.actualRuns} runs, SR: ${pred.actualSR}, ${pred.dismissed ? "Was dismissed" : "Not dismissed"}
-Accuracy: ${pred.accuracy}
-Difference: ${pred.actualRuns - pred.predictedRuns} runs
+  const load = useCallback(() => {
+    if (!apiOk) return;
+    setLoading(true);
+    apiFetch("/saved-predictions")
+      .then(data => {
+        // Handle both old bare-array format and new envelope format
+        if (Array.isArray(data)) {
+          setPreds(data); setSummary(null);
+        } else {
+          setPreds(data.predictions || []); setSummary(data.summary || null);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [apiOk]);
 
-Provide a post-match AI review in 3-4 sentences covering:
-1. Why the prediction was ${pred.accuracy.toLowerCase()}
-2. What factors caused any discrepancy (pitch, bowling changes, batting form)
-3. What the model learned from this prediction
-4. How this improves future predictions
+  useEffect(() => { load(); }, [load]);
 
-End with a "What Went Right" and "What Went Wrong" section.`;
-    try {
-      await callClaude(prompt, t => setAiReview(t));
-    } catch {
-      setAiReview("AI review unavailable.");
-    }
-    setAiLoading(false);
+  const openDetail = (p) => {
+    if (selected?.id === p.id) { setSelected(null); setAiReview(""); setUpdMsg(""); return; }
+    setSelected(p); setAiReview(""); setUpdMsg("");
+    setActualRuns(p.actual_runs ?? "");
+    setActualSR(p.actual_sr ?? "");
+    setDismissed(p.dismissed ?? false);
   };
 
-  const accColor = (a) => a === "Accurate" ? G.green : a === "Partially Accurate" ? G.amber : G.red;
-  const accBg = (a) => a === "Accurate" ? G.greenLight : a === "Partially Accurate" ? G.amberLight : G.redLight;
+  const updatePred = async () => {
+    if (!selected) return;
+    try {
+      const res = await apiFetch(`/update-prediction/${selected.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actual_runs: Number(actualRuns), actual_sr: Number(actualSR), dismissed }),
+      });
+      setUpdMsg(`✅ Marked as: ${res.status}`);
+      load();
+    } catch { setUpdMsg("❌ Update failed."); }
+  };
 
-  const totalPredictions = SAVED_PREDICTIONS.length;
-  const accurate = SAVED_PREDICTIONS.filter(p => p.accuracy === "Accurate").length;
-  const partial = SAVED_PREDICTIONS.filter(p => p.accuracy === "Partially Accurate").length;
-  const avgDiff = Math.round(SAVED_PREDICTIONS.reduce((s, p) => s + Math.abs(p.actualRuns - p.predictedRuns), 0) / totalPredictions);
+  const deletePred = async (id) => {
+    if (!window.confirm("Delete this prediction?")) return;
+    await apiFetch(`/saved-predictions/${id}`, { method: "DELETE" }).catch(() => {});
+    if (selected?.id === id) setSelected(null);
+    load();
+  };
+
+  const generateReview = async (pred) => {
+    setAiReview(""); setAiLoad(true);
+    const prompt = `You are an IPL cricket AI analyst reviewing prediction accuracy.
+Match: ${pred.match} at ${pred.venue || ""} · Phase: ${pred.phase || ""} · Spin: ${pred.spin_type || ""}
+Batter: ${pred.batter_name || pred.batter}
+Predicted: ${pred.predicted_runs} runs, SR: ${pred.predicted_sr}, Dismissal Prob: ${pred.dismissal_prob}%
+Actual: ${pred.actual_runs ?? "not recorded"} runs, SR: ${pred.actual_sr ?? "not recorded"}, ${pred.dismissed ? "Was dismissed" : "Not dismissed"}
+Status: ${pred.status} · Model: ${pred.model_version || ""} · Confidence: ${pred.confidence}%
+Provide a post-match AI review in 3-4 sentences: why the prediction was ${(pred.status||"").toLowerCase()}, what caused any discrepancy, what the model learned, and how to improve future predictions. End with "What Went Right" and "What Went Wrong".`;
+    try { await callClaude(prompt, t => setAiReview(t)); }
+    catch { setAiReview("AI review unavailable."); }
+    setAiLoad(false);
+  };
+
+  const accColor = a => a === "Accurate" ? G.green : a === "Partially Accurate" ? G.amber : a === "Inaccurate" ? G.red : G.gray500;
+  const accBg    = a => a === "Accurate" ? G.greenLight : a === "Partially Accurate" ? G.amberLight : a === "Inaccurate" ? G.redLight : G.gray100;
+
+  if (!apiOk) return <EmptyState icon="🔌" text="Flask API is offline. Start it to view saved predictions." />;
+
+  // Use summary from API if available, else compute from local preds
+  const total      = summary?.total      ?? preds.length;
+  const accurate   = summary?.accurate   ?? preds.filter(p => p.status === "Accurate").length;
+  const partial    = summary?.partial    ?? preds.filter(p => p.status === "Partially Accurate").length;
+  const avgDiff    = summary?.avg_run_diff ?? (preds.filter(p => p.actual_runs != null).length
+    ? Math.round(preds.filter(p=>p.actual_runs!=null).reduce((s,p)=>s+Math.abs((p.actual_runs||0)-(p.predicted_runs||0)),0) / preds.filter(p=>p.actual_runs!=null).length)
+    : null);
 
   return (
     <div style={{ padding: "24px" }}>
       {/* Summary KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
-        <KpiCard label="Total Predictions" value={totalPredictions} icon="📋" color={G.blue} />
-        <KpiCard label="Accurate" value={accurate} icon="✅" color={G.green} sub={`${Math.round(accurate/totalPredictions*100)}% accuracy`} />
+        <KpiCard label="Total Predictions" value={total}    icon="📋" color={G.blue} />
+        <KpiCard label="Accurate"          value={accurate} icon="✅" color={G.green}
+          sub={total > 0 ? `${Math.round(accurate/total*100)}% accuracy` : ""} />
         <KpiCard label="Partially Accurate" value={partial} icon="🟡" color={G.amber} />
-        <KpiCard label="Avg Run Difference" value={`${avgDiff}`} icon="📉" color={G.red} sub="runs off target" />
+        <KpiCard label="Avg Run Difference" value={avgDiff != null ? `${avgDiff}` : "—"} icon="📉" color={G.red} sub="runs off target" />
       </div>
 
-      {/* Prediction History Table */}
+      {/* Table */}
       <Card style={{ marginBottom: 16 }}>
-        <SectionTitle icon="📊">Prediction History</SectionTitle>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif" }}>
-            <thead>
-              <tr style={{ background: G.gray50 }}>
-                {["Match", "Date", "Venue", "Batter", "Pred Runs", "Actual Runs", "Difference", "Accuracy", "Action"].map(h => (
-                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: G.gray600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", borderBottom: `2px solid ${G.gray200}` }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {SAVED_PREDICTIONS.map((pred, i) => {
-                const diff = pred.actualRuns - pred.predictedRuns;
-                return (
-                  <tr key={pred.id} style={{ borderBottom: `1px solid ${G.gray100}`, transition: "background 0.1s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = G.gray50}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td style={{ padding: "12px", fontWeight: 700, color: G.gray800 }}>{pred.match}</td>
-                    <td style={{ padding: "12px", color: G.gray500 }}>{pred.date}</td>
-                    <td style={{ padding: "12px", color: G.gray600, maxWidth: 140, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pred.venue}</td>
-                    <td style={{ padding: "12px", fontWeight: 600, color: G.gray700 }}>{pred.batter}</td>
-                    <td style={{ padding: "12px", fontWeight: 700, color: G.blue }}>{pred.predictedRuns}</td>
-                    <td style={{ padding: "12px", fontWeight: 700, color: G.gray800 }}>{pred.actualRuns}</td>
-                    <td style={{ padding: "12px", fontWeight: 700, color: diff >= 0 ? G.green : G.red }}>{diff >= 0 ? "+" : ""}{diff}</td>
-                    <td style={{ padding: "12px" }}>
-                      <Badge label={pred.accuracy} color={accColor(pred.accuracy)} bg={accBg(pred.accuracy)} />
-                    </td>
-                    <td style={{ padding: "12px" }}>
-                      <button onClick={() => generateReview(pred)} style={{
-                        padding: "5px 12px", background: G.green, color: "#fff", border: "none",
-                        borderRadius: 6, fontSize: 11, cursor: "pointer", fontWeight: 600,
-                        fontFamily: "'Barlow Condensed', sans-serif",
-                      }}>AI Review</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <SectionTitle icon="📊">Prediction History</SectionTitle>
+          <button onClick={load} style={{ padding: "5px 12px", background: G.gray100, border: `1px solid ${G.gray200}`, borderRadius: 6, fontSize: 12, cursor: "pointer", color: G.gray600, fontFamily: "'Barlow Condensed', sans-serif" }}>↺ Refresh</button>
         </div>
+
+        {loading && <Spinner text="Loading predictions…" />}
+        {!loading && preds.length === 0 && (
+          <EmptyState icon="📭" text="No saved predictions yet. Generate and save one from Match Prediction." />
+        )}
+        {!loading && preds.length > 0 && (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif" }}>
+              <thead>
+                <tr style={{ background: G.gray50 }}>
+                  {["Batter","Match","Venue","Phase","Spin","Pred Runs","Actual","Diff","Status",""].map(h => (
+                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: G.gray600, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap", borderBottom: `2px solid ${G.gray200}` }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {preds.map(pred => {
+                  const diff = pred.actual_runs != null ? (pred.actual_runs - pred.predicted_runs) : null;
+                  return (
+                    <tr key={pred.id} style={{ borderBottom: `1px solid ${G.gray100}`, background: selected?.id === pred.id ? G.greenLight : "transparent", transition: "background 0.1s", cursor: "pointer" }}
+                      onClick={() => openDetail(pred)}
+                      onMouseEnter={e => { if (selected?.id !== pred.id) e.currentTarget.style.background = G.gray50; }}
+                      onMouseLeave={e => { if (selected?.id !== pred.id) e.currentTarget.style.background = "transparent"; }}>
+                      <td style={{ padding: "12px", fontWeight: 700, color: G.gray800 }}>{pred.batter_name || pred.batter}</td>
+                      <td style={{ padding: "12px", color: G.gray600 }}>{pred.match}</td>
+                      <td style={{ padding: "12px", color: G.gray500, maxWidth: 120, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pred.venue || "—"}</td>
+                      <td style={{ padding: "12px", color: G.gray500 }}>{pred.phase || "—"}</td>
+                      <td style={{ padding: "12px", color: G.gray500, fontSize: 11 }}>{pred.spin_type || "—"}</td>
+                      <td style={{ padding: "12px", fontWeight: 700, color: G.blue }}>{pred.predicted_runs ?? "—"}</td>
+                      <td style={{ padding: "12px", fontWeight: 700, color: G.gray800 }}>{pred.actual_runs ?? "—"}</td>
+                      <td style={{ padding: "12px", fontWeight: 700, color: diff == null ? G.gray400 : diff >= 0 ? G.green : G.red }}>
+                        {diff == null ? "—" : `${diff >= 0 ? "+" : ""}${diff}`}
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <Badge label={pred.status || "Pending"} color={accColor(pred.status)} bg={accBg(pred.status)} />
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <button onClick={e => { e.stopPropagation(); deletePred(pred.id); }}
+                          style={{ padding: "4px 8px", background: "transparent", border: `1px solid ${G.gray200}`, borderRadius: 5, cursor: "pointer", fontSize: 13, color: G.gray400 }}>🗑</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
-      {/* Detail View */}
+      {/* Detail Panel */}
       {selected && (
-        <Card style={{ marginBottom: 16, borderTop: `3px solid ${accColor(selected.accuracy)}` }}>
+        <Card style={{ marginBottom: 16, borderTop: `3px solid ${accColor(selected.status)}` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <SectionTitle icon="🔍">Detailed Comparison — {selected.match}</SectionTitle>
-            <Badge label={selected.accuracy} color={accColor(selected.accuracy)} bg={accBg(selected.accuracy)} />
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Badge label={selected.status || "Pending"} color={accColor(selected.status)} bg={accBg(selected.status)} />
+              <button onClick={() => { setSelected(null); setAiReview(""); }} style={{ padding: "4px 8px", background: G.gray100, border: `1px solid ${G.gray200}`, borderRadius: 5, cursor: "pointer", fontSize: 13, color: G.gray500 }}>✕</button>
+            </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+          {/* Predicted vs Actual */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: G.blueLight, borderRadius: 10, padding: "16px" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: G.blue, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Predicted</div>
               {[
-                { label: "Runs", value: selected.predictedRuns },
-                { label: "Strike Rate", value: selected.predictedSR },
-                { label: "Dismissal Prob", value: `${selected.dismissalProb}%` },
+                { label: "Runs",         value: selected.predicted_runs },
+                { label: "Strike Rate",  value: selected.predicted_sr   },
+                { label: "Dismissal Prob", value: `${selected.dismissal_prob ?? "—"}%` },
+                { label: "Confidence",   value: `${selected.confidence  ?? "—"}%` },
               ].map(r => (
                 <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 13, color: G.gray600 }}>{r.label}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{r.value}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{r.value ?? "—"}</span>
                 </div>
               ))}
             </div>
             <div style={{ background: G.greenLight, borderRadius: 10, padding: "16px" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: G.green, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Actual</div>
               {[
-                { label: "Runs", value: selected.actualRuns },
-                { label: "Strike Rate", value: selected.actualSR },
-                { label: "Dismissed", value: selected.dismissed ? "Yes" : "No" },
+                { label: "Runs",        value: selected.actual_runs ?? "Not recorded" },
+                { label: "Strike Rate", value: selected.actual_sr   ?? "Not recorded" },
+                { label: "Dismissed",   value: selected.dismissed === true ? "Yes" : selected.dismissed === false ? "No" : "Unknown" },
               ].map(r => (
                 <div key={r.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 13, color: G.gray600 }}>{r.label}</span>
@@ -942,22 +1108,77 @@ End with a "What Went Right" and "What Went Wrong" section.`;
             </div>
           </div>
 
+          {/* Update form — only shown for Pending predictions */}
+          {(!selected.status || selected.status === "Pending") && (
+            <div style={{ marginBottom: 16, padding: "14px 16px", background: G.gray50, borderRadius: 10, border: `1px solid ${G.gray200}` }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: G.gray700, marginBottom: 12 }}>Enter Actual Results to Update Accuracy</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 10, alignItems: "flex-end" }}>
+                <div>
+                  <label style={{ fontSize: 10, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 3 }}>Actual Runs</label>
+                  <input type="number" value={actualRuns} onChange={e => setActualRuns(e.target.value)}
+                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${G.gray300}`, borderRadius: 7, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, outline: "none" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 3 }}>Actual SR</label>
+                  <input type="number" value={actualSR} onChange={e => setActualSR(e.target.value)}
+                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${G.gray300}`, borderRadius: 7, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, outline: "none" }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 3 }}>Dismissed</label>
+                  <select value={dismissed.toString()} onChange={e => setDismissed(e.target.value === "true")}
+                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${G.gray300}`, borderRadius: 7, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, outline: "none", cursor: "pointer" }}>
+                    <option value="false">Not Out</option>
+                    <option value="true">Out</option>
+                  </select>
+                </div>
+                <button onClick={updatePred} style={{ padding: "9px 16px", background: G.green, color: G.white, border: "none", borderRadius: 7, fontWeight: 600, cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, whiteSpace: "nowrap" }}>Update</button>
+              </div>
+              {updMsg && <div style={{ marginTop: 8, fontSize: 12, color: updMsg.startsWith("✅") ? G.green : G.red }}>{updMsg}</div>}
+            </div>
+          )}
+
+          {/* Comparison chart */}
+          {selected.actual_runs != null && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: G.gray600, marginBottom: 8 }}>Predicted vs Actual Runs</div>
+              <div style={{ height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[{ name: "Runs", predicted: selected.predicted_runs, actual: selected.actual_runs }]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={G.gray100} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="predicted" name="Predicted" fill={G.blue}  radius={[3,3,0,0]} />
+                    <Bar dataKey="actual"    name="Actual"    fill={G.green} radius={[3,3,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           {/* AI Post-Match Review */}
-          <div style={{ marginTop: 16, background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 10, padding: "16px", borderLeft: `4px solid ${G.green}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 16 }}>🤖</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Post-Match Review</span>
+          <div style={{ background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 10, padding: "16px", borderLeft: `4px solid ${G.green}`, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>🤖</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: G.green, fontFamily: "'Barlow Condensed', sans-serif", textTransform: "uppercase", letterSpacing: 0.5 }}>AI Post-Match Review</span>
+              </div>
+              <button onClick={() => generateReview(selected)} disabled={aiLoading} style={{ padding: "5px 12px", background: G.green, color: "#fff", border: "none", borderRadius: 6, fontSize: 11, cursor: "pointer", fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif" }}>
+                {aiLoading ? "Generating…" : "AI Review"}
+              </button>
             </div>
             {aiLoading && !aiReview && <div style={{ color: G.gray400, fontSize: 13 }}>Generating AI review…</div>}
             {aiReview && <p style={{ fontSize: 13.5, color: G.gray700, lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>{aiReview}</p>}
+            {!aiReview && !aiLoading && <p style={{ fontSize: 13, color: G.gray400, margin: 0, fontStyle: "italic" }}>Click "AI Review" to generate a post-match analysis.</p>}
           </div>
 
-          {/* Model Learning */}
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          {/* Model Info */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             {[
-              { label: "Prediction Confidence", value: "78%", color: G.blue },
-              { label: "Prediction Error", value: `${Math.abs(selected.actualRuns - selected.predictedRuns)} runs`, color: G.red },
-              { label: "Accuracy Rating", value: selected.accuracy.split(" ")[0], color: accColor(selected.accuracy) },
+              { label: "Confidence",    value: `${selected.confidence ?? "—"}%`, color: G.blue  },
+              { label: "Prediction Error", value: selected.actual_runs != null ? `${Math.abs(selected.actual_runs - selected.predicted_runs)} runs` : "—", color: G.red },
+              { label: "Model",         value: selected.model_version || "—",   color: G.green },
             ].map(m => (
               <div key={m.label} style={{ background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: m.color, fontFamily: "'Barlow Condensed', sans-serif" }}>{m.value}</div>
@@ -973,8 +1194,37 @@ End with a "What Went Right" and "What Went Wrong" section.`;
 
 // ─── ROOT APP ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage] = useState("dashboard");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [page,      setPage]      = useState("dashboard");
+  const [collapsed, setCollapsed] = useState(false);
+  const [apiStatus, setApiStatus] = useState("checking");
+  const [players,   setPlayers]   = useState([]);
+  const [venues,    setVenues]    = useState([]);
+  const [teams,     setTeams]     = useState([]);
+  const [spinBowlers, setSpinBowlers] = useState([]);
+
+  // Health poll every 10s
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(2500) });
+        setApiStatus(r.ok ? "connected" : "disconnected");
+      } catch { setApiStatus("disconnected"); }
+    };
+    check();
+    const id = setInterval(check, 10000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Load reference data once API is up
+  useEffect(() => {
+    if (apiStatus !== "connected") return;
+    apiFetch("/players").then(setPlayers).catch(() => {});
+    apiFetch("/venues").then(d => setVenues(d.map(v => v.venue || v))).catch(() => {});
+    apiFetch("/teams").then(setTeams).catch(() => {});
+    apiFetch("/spin-bowlers").then(setSpinBowlers).catch(() => {});
+  }, [apiStatus]);
+
+  const apiOk = apiStatus === "connected";
 
   return (
     <>
@@ -985,19 +1235,20 @@ export default function App() {
         button, select, input { font-family: inherit; }
         select { appearance: none; }
         @keyframes blink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
         input:focus, select:focus { border-color: #1a7340 !important; box-shadow: 0 0 0 3px rgba(26,115,64,0.1); }
       `}</style>
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        <Sidebar page={page} setPage={setPage} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        <Sidebar page={page} setPage={setPage} collapsed={collapsed} setCollapsed={setCollapsed} />
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <Topbar page={page} />
+          <Topbar page={page} apiStatus={apiStatus} batterCount={players.length} />
           <div style={{ flex: 1, overflowY: "auto" }}>
-            {page === "dashboard" && <DashboardPage />}
-            {page === "prediction" && <PredictionPage />}
-            {page === "saved" && <SavedPage />}
+            {page === "dashboard"  && <DashboardPage  players={players} venues={venues} apiOk={apiOk} />}
+            {page === "prediction" && <PredictionPage players={players} venues={venues} teams={teams} spinBowlers={spinBowlers} apiOk={apiOk} />}
+            {page === "saved"      && <SavedPage apiOk={apiOk} />}
           </div>
         </div>
       </div>
