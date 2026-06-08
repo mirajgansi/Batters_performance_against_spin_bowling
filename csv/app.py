@@ -400,6 +400,10 @@ def get_venues():
 # ── GET /player-stats/<player_id> ─────────────────────────────────────────────
 @app.route("/player-stats/<int:player_id>", methods=["GET"])
 def player_stats(player_id):
+    # Read filter params from query string
+    filter_season   = request.args.get("season",   None)   # e.g. "2023"
+    filter_spin_key = request.args.get("spin_type", None)  # e.g. "legbreak"
+
     batter_name = get_batter_name(player_id)
     if not batter_name:
         return jsonify({"error": "Player not found"}), 404
@@ -413,6 +417,19 @@ def player_stats(player_id):
     bf = bf_row.iloc[0]
     bvs_rows = bvs_df[bvs_df["batter"] == batter_name]
 
+    # Apply season/spin filters to ball-by-ball data for this request
+    bbb_filtered = bbb_df.copy() if bbb_df is not None else None
+    if bbb_filtered is not None:
+        if filter_season:
+            bbb_filtered = bbb_filtered[bbb_filtered["season"] == int(filter_season)]
+        if filter_spin_key:
+            # Build bowler list for this spin type first (reuse logic below)
+            _spin_bowlers = [
+                (row.get("Name") or row.get("longName", ""))
+                for _, row in players_df.iterrows()
+                if filter_spin_key in str(row.get("longBowlingStyles", "")).lower()
+            ]
+            bbb_filtered = bbb_filtered[bbb_filtered["bowler"].isin(_spin_bowlers)]
     sr           = float(bf.get("sr", 0))
     avg          = float(bf.get("avg", 0))
     dot_pct      = float(bf.get("dot_pct", 0))
@@ -423,6 +440,25 @@ def player_stats(player_id):
     total_balls  = int(bf.get("total_balls", 0))
     dismissals   = int(bf.get("dismissals", 0))
 
+    if bbb_filtered is not None and (filter_season or filter_spin_key):
+        bbb_player_filtered = bbb_filtered[bbb_filtered["batter"] == batter_name]
+        if not bbb_player_filtered.empty:
+            f_balls      = len(bbb_player_filtered)
+            f_runs       = bbb_player_filtered["batsmanrun"].sum()
+            f_wkts       = int(bbb_player_filtered["iswicketdelivery"].sum())
+            f_dots       = int((bbb_player_filtered["batsmanrun"] == 0).sum())
+            f_fours      = int((bbb_player_filtered["batsmanrun"] == 4).sum())
+            f_sixes      = int((bbb_player_filtered["batsmanrun"] == 6).sum())
+            f_boundaries = f_fours + f_sixes
+            sr           = round(f_runs / f_balls * 100, 2) if f_balls > 0 else sr
+            avg          = round(f_runs / max(1, f_wkts), 2)
+            dot_pct      = round(f_dots / f_balls * 100, 2) if f_balls > 0 else dot_pct
+            boundary_pct = round(f_boundaries / f_balls * 100, 2) if f_balls > 0 else boundary_pct
+            six_pct      = round(f_sixes / f_balls * 100, 2) if f_balls > 0 else six_pct
+            wkt_rate     = round(f_wkts / f_balls * 100, 2) if f_balls > 0 else wkt_rate
+            total_balls  = f_balls
+            dismissals   = f_wkts
+            
     # ── Runs distribution — use real columns if present, derive if not ─────────
     ones   = int(bf.get("ones",   0))
     twos   = int(bf.get("twos",   0))
@@ -468,22 +504,20 @@ def player_stats(player_id):
     # ── Phase breakdown ───────────────────────────────────────────────────────
     phases = []
     BBB_BATTER_COL = None
-    if bbb_df is not None:
+    if bbb_filtered is not None:
         for col in ["batter", "Batter"]:
-            if col in bbb_df.columns:
+            if col in bbb_filtered.columns:
                 BBB_BATTER_COL = col
                 break
 
-    if bbb_df is not None and BBB_BATTER_COL and "phase" in bbb_df.columns:
-        bbb_player = bbb_df[bbb_df[BBB_BATTER_COL] == batter_name]
+    if bbb_filtered is not None and BBB_BATTER_COL and "phase" in bbb_filtered.columns:
+        bbb_player = bbb_filtered[bbb_filtered[BBB_BATTER_COL] == batter_name]
         for phase_name in ["Powerplay", "Middle", "Death"]:
             p = bbb_player[bbb_player["phase"] == phase_name]
             if not p.empty:
                 p_balls = len(p)
-                p_runs  = p["batsman_runs"].sum() if "batsman_runs" in p.columns else (
-                          p["BatsmanRun"].sum()   if "BatsmanRun"   in p.columns else 0)
-                p_wkts  = (p["player_dismissed"].notna().sum() if "player_dismissed" in p.columns else
-                           p["IsWicketDelivery"].sum()         if "IsWicketDelivery" in p.columns else 0)
+                p_runs = p["batsmanrun"].sum() if "batsmanrun" in p.columns else 0
+                p_wkts = p["iswicketdelivery"].sum() if "iswicketdelivery" in p.columns else 0
                 phases.append({
                     "phase": phase_name,
                     "sr":    round(p_runs / p_balls * 100, 1) if p_balls > 0 else 0,
@@ -499,12 +533,13 @@ def player_stats(player_id):
         ]
 
     # ── Spin type comparison ──────────────────────────────────────────────────
+    # AFTER — labels now exactly match frontend SPIN_TYPE_OPTIONS labels
     SPIN_TYPES = [
-        ("right-arm offbreak",     "Off-break",    "OB"),
-        ("slow left-arm orthodox", "SLA Orthodox", "SLA"),
-        ("legbreak",               "Leg-break",    "LB"),
-        ("legbreak googly",        "Googly",       "LBG"),
-        ("left-arm wrist-spin",    "LW Spin",      "LWS"),
+        ("right-arm offbreak",     "Off Spin",            "OB"),
+        ("slow left-arm orthodox", "Left Arm Orthodox",   "SLA"),
+        ("legbreak",               "Leg Spin",            "LB"),
+        ("legbreak googly",        "Leg Spin (Googly)",   "LBG"),
+        ("left-arm wrist-spin",    "Left Arm Wrist Spin", "LWS"),
     ]
 
     bowler_spin_map = {}
@@ -518,25 +553,25 @@ def player_stats(player_id):
 
     spin_comparison = []
     BBB_BOWLER_COL  = None
-    if bbb_df is not None:
-        for col in ["Bowler", "bowler"]:
-            if col in bbb_df.columns:
+    if bbb_filtered is not None:
+        for col in ["bowler", "Bowler"]:
+            if col in bbb_filtered.columns:
                 BBB_BOWLER_COL = col
                 break
     BBB_BATTER_COL2 = BBB_BATTER_COL or "Batter"
 
     for spin_key, spin_label, spin_short in SPIN_TYPES:
-        if bbb_df is not None and BBB_BATTER_COL2 in bbb_df.columns and BBB_BOWLER_COL:
+        if bbb_filtered is not None and BBB_BATTER_COL2 in bbb_filtered.columns and BBB_BOWLER_COL:
             spin_bowlers = [b for b, s in bowler_spin_map.items() if s == spin_key]
-            mask = (bbb_df[BBB_BATTER_COL2] == batter_name) & (bbb_df[BBB_BOWLER_COL].isin(spin_bowlers))
-            spin_balls = bbb_df[mask]
+            mask = (bbb_filtered[BBB_BATTER_COL2] == batter_name) & (bbb_filtered[BBB_BOWLER_COL].isin(spin_bowlers))
+            spin_balls = bbb_filtered[mask]
 
             if not spin_balls.empty:
                 s_balls      = len(spin_balls)
-                runs_col     = "BatsmanRun" if "BatsmanRun" in spin_balls.columns else "batsman_runs"
-                wkt_col      = "IsWicketDelivery" if "IsWicketDelivery" in spin_balls.columns else "player_dismissed"
+                runs_col = "batsmanrun" if "batsmanrun" in spin_balls.columns else "batsman_runs"
+                wkt_col  = "iswicketdelivery" if "iswicketdelivery" in spin_balls.columns else "player_dismissed"
                 s_runs       = spin_balls[runs_col].sum() if runs_col in spin_balls.columns else 0
-                s_dismissals = (spin_balls[wkt_col].sum() if wkt_col == "IsWicketDelivery"
+                s_dismissals = (spin_balls[wkt_col].sum() if wkt_col == "iswicketdelivery"
                                 else spin_balls[wkt_col].notna().sum()) if wkt_col in spin_balls.columns else 0
                 spin_comparison.append({
                     "type":          spin_label,
@@ -559,16 +594,13 @@ def player_stats(player_id):
 
     # ── Season trend ──────────────────────────────────────────────────────────
     seasons = []
-    if bbb_df is not None and "season" in bbb_df.columns and BBB_BATTER_COL:
-        bbb_player = bbb_df[bbb_df[BBB_BATTER_COL] == batter_name]
+    if bbb_filtered is not None and "season" in bbb_filtered.columns and BBB_BATTER_COL:
+        bbb_player = bbb_filtered[bbb_filtered[BBB_BATTER_COL] == batter_name]
         for season in sorted(bbb_player["season"].dropna().unique()):
             s = bbb_player[bbb_player["season"] == season]
             s_balls  = len(s)
-            runs_col = "BatsmanRun" if "BatsmanRun" in s.columns else "batsman_runs"
-            wkt_col  = "IsWicketDelivery" if "IsWicketDelivery" in s.columns else "player_dismissed"
-            s_runs   = s[runs_col].sum() if runs_col in s.columns else 0
-            s_wkts   = (s[wkt_col].sum() if wkt_col == "IsWicketDelivery"
-                        else s[wkt_col].notna().sum()) if wkt_col in s.columns else 0
+            s_runs = s["batsmanrun"].sum() if "batsmanrun" in s.columns else 0
+            s_wkts = s["iswicketdelivery"].sum() if "iswicketdelivery" in s.columns else 0
             seasons.append({
                 "season": str(int(season)),
                 "sr":     round(s_runs / s_balls * 100, 1) if s_balls > 0 else 0,
