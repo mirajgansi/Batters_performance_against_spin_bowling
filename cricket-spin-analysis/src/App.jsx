@@ -354,12 +354,37 @@ function PlayerSearch({ players, selected, onSelect, placeholder = "Search IPL B
 
 // ─── PAGE 1: DASHBOARD ─────────────────────────────────────────────────────────
 function DashboardPage({ players, venues, apiOk }) {
-  const [player,    setPlayer]    = useState(null);
-  const [stats,     setStats]     = useState(null);
-  const [statsLoad, setStatsLoad] = useState(false);
-  const [spinType,  setSpinType]  = useState("All Spin");
-  const [season,    setSeason]    = useState("All Seasons");
-  const [venue,     setVenue]     = useState("All Venues");
+  const [player,        setPlayer]        = useState(null);
+  const [stats,         setStats]         = useState(null);
+  const [statsLoad,     setStatsLoad]     = useState(false);
+  const [spinType,      setSpinType]      = useState("All Spin");
+  const [season,        setSeason]        = useState("All Seasons");
+  const [venue,         setVenue]         = useState("All Venues");
+  const [playerSeasons, setPlayerSeasons] = useState([]); // [{season, balls, low_data}]
+  const [seasonsLoad,   setSeasonsLoad]   = useState(false);
+  const [playerVenues,  setPlayerVenues]  = useState([]); // [{venue, balls, low_data}]
+  const [venuesLoad,    setVenuesLoad]    = useState(false);
+
+  // When player changes, fetch their specific seasons+venues and reset filters
+  useEffect(() => {
+    if (!player || !apiOk) {
+      setPlayerSeasons([]); setSeason("All Seasons");
+      setPlayerVenues([]);  setVenue("All Venues");
+      return;
+    }
+    setSeasonsLoad(true);
+    apiFetch(`/player-seasons/${player.ID}`)
+      .then(d => { setPlayerSeasons(d.seasons || []); setSeasonsLoad(false); })
+      .catch(() => { setPlayerSeasons([]); setSeasonsLoad(false); });
+
+    setVenuesLoad(true);
+    apiFetch(`/player-venues/${player.ID}`)
+      .then(d => { setPlayerVenues(d.venues || []); setVenuesLoad(false); })
+      .catch(() => { setPlayerVenues([]); setVenuesLoad(false); });
+
+    setSeason("All Seasons");
+    setVenue("All Venues");
+  }, [player?.ID, apiOk]);
 
   // Load stats when player changes
 useEffect(() => {
@@ -368,6 +393,7 @@ useEffect(() => {
 
   const params = new URLSearchParams();
   if (season !== "All Seasons") params.set("season", season);
+  if (venue  !== "All Venues")  params.set("venue", venue);
   if (spinType !== "All Spin") {
     const spinVal = SPIN_TYPE_OPTIONS.find(s => s.label === spinType)?.value;
     if (spinVal) params.set("spin_type", spinVal);
@@ -377,7 +403,7 @@ useEffect(() => {
   apiFetch(`/player-stats/${player.ID}${query}`)
     .then(d => { setStats(d.error ? null : d); setStatsLoad(false); })
     .catch(() => setStatsLoad(false));
-}, [player?.ID, apiOk, season, spinType]);
+}, [player?.ID, apiOk, season, spinType, venue]);
 
   // Build weakness list from spinComparison — sorted by dismissalProb descending
   const weaknesses = useMemo(() => {
@@ -464,19 +490,108 @@ Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesse
                 <option>All Spin</option>
                 {SPIN_TYPE_OPTIONS.map(s => <option key={s.value}>{s.label}</option>)}
               </select>
-              <select value={season} onChange={e => setSeason(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: "pointer", outline: "none" }}>
-                <option>All Seasons</option>
-                {["2025","2024","2023","2022","2021","2020","2019"].map(s => <option key={s}>{s}</option>)}
-              </select>
-              <select value={venue} onChange={e => setVenue(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: "pointer", outline: "none" }}>
-                <option>All Venues</option>
-                {venues.map(v => <option key={v}>{v}</option>)}
-              </select>
+              <div style={{ position: "relative" }}>
+                <select
+                  value={season}
+                  onChange={e => setSeason(e.target.value)}
+                  disabled={seasonsLoad}
+                  style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: seasonsLoad ? "not-allowed" : "pointer", outline: "none", opacity: seasonsLoad ? 0.6 : 1 }}
+                >
+                  <option value="All Seasons">All Seasons</option>
+                  {playerSeasons.map(s => (
+                    <option key={s.season} value={s.season}>
+                      {s.season}{s.low_data ? " ⚠" : ""} ({s.balls} balls)
+                    </option>
+                  ))}
+                </select>
+                {seasonsLoad && (
+                  <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", width: 12, height: 12, border: `2px solid ${G.gray200}`, borderTop: `2px solid ${G.green}`, borderRadius: "50%", animation: "spin 0.7s linear infinite", pointerEvents: "none" }} />
+                )}
+              </div>
+              <div style={{ position: "relative" }}>
+                <select
+                  value={venue}
+                  onChange={e => setVenue(e.target.value)}
+                  disabled={venuesLoad}
+                  style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: venuesLoad ? "not-allowed" : "pointer", outline: "none", opacity: venuesLoad ? 0.6 : 1 }}
+                >
+                  <option value="All Venues">All Venues</option>
+                  {playerVenues.length === 0 && player && !venuesLoad && (
+                    <option disabled value="">— no venue data in bbb —</option>
+                  )}
+                  {playerVenues.map(v => (
+                    <option key={v.venue} value={v.venue}>
+                      {v.venue}{v.low_data ? " ⚠" : ""} ({v.balls} balls)
+                    </option>
+                  ))}
+                </select>
+                {venuesLoad && (
+                  <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", width: 12, height: 12, border: `2px solid ${G.gray200}`, borderTop: `2px solid ${G.green}`, borderRadius: "50%", animation: "spin 0.7s linear infinite", pointerEvents: "none" }} />
+                )}
+              </div>
             </div>
+
+            {/* Data quality warning for selected season */}
+            {(() => {
+              if (season === "All Seasons") return null;
+              const s = playerSeasons.find(ps => ps.season === season);
+              if (!s) return null;
+              if (s.balls < 10) return (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", marginBottom: 16, background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, borderLeft: `4px solid ${G.red}` }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🚫</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: G.red, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>Too few games in {s.season}</div>
+                    <div style={{ fontSize: 12, color: "#b91c1c" }}>Only {s.balls} balls faced vs spin this season — not enough data to show meaningful analysis. Try "All Seasons" or a different year.</div>
+                  </div>
+                </div>
+              );
+              if (s.low_data) return (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", marginBottom: 16, background: G.amberLight, border: "1px solid #fcd34d", borderRadius: 10, borderLeft: `4px solid ${G.amber}` }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: G.amber, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>Limited data for {s.season}</div>
+                    <div style={{ fontSize: 12, color: "#92400e" }}>Only {s.balls} balls faced vs spin this season — analysis may not be fully reliable. Interpret with caution.</div>
+                  </div>
+                </div>
+              );
+              return null;
+            })()}
+
+            {/* Data quality warning for selected venue */}
+            {(() => {
+              if (venue === "All Venues") return null;
+              const v = playerVenues.find(pv => pv.venue === venue);
+              if (!v) return null;
+              if (v.balls < 10) return (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", marginBottom: 16, background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, borderLeft: `4px solid ${G.red}` }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>🚫</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: G.red, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>Too few balls at {v.venue}</div>
+                    <div style={{ fontSize: 12, color: "#b91c1c" }}>Only {v.balls} balls faced vs spin at this venue — not enough data to show meaningful analysis. Try "All Venues" or a different ground.</div>
+                  </div>
+                </div>
+              );
+              if (v.low_data) return (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", marginBottom: 16, background: G.amberLight, border: "1px solid #fcd34d", borderRadius: 10, borderLeft: `4px solid ${G.amber}` }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: G.amber, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>Limited data at {v.venue}</div>
+                    <div style={{ fontSize: 12, color: "#92400e" }}>Only {v.balls} balls faced vs spin at this venue — analysis may not be fully reliable. Interpret with caution.</div>
+                  </div>
+                </div>
+              );
+              return null;
+            })()}
 
             {statsLoad && <Spinner text="Loading player stats…" />}
 
-            {stats && (
+            {stats && (() => {
+              const selectedSeasonData = season !== "All Seasons" ? playerSeasons.find(ps => ps.season === season) : null;
+              const selectedVenueData  = venue  !== "All Venues"  ? playerVenues.find(pv => pv.venue === venue)     : null;
+              const tooFewBalls = (selectedSeasonData && selectedSeasonData.balls < 10) ||
+                                  (selectedVenueData  && selectedVenueData.balls  < 10);
+              if (tooFewBalls) return null; // warning banner above already shown
+              return (
               <>
                 {/* KPI Cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 20 }}>
@@ -545,11 +660,26 @@ Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesse
                           <YAxis tick={{ fill: G.gray500, fontSize: 11 }} axisLine={false} tickLine={false} width={35} />
                           <Tooltip content={<CustomTooltip />} />
                           <Legend wrapperStyle={{ fontSize: 11, color: G.gray500 }} />
-                          <Line type="monotone" dataKey="sr"  name="Strike Rate" stroke={G.green}  strokeWidth={2.5} dot={{ fill: G.green,  r: 4 }} />
-                          <Line type="monotone" dataKey="avg" name="Average"     stroke={G.accent} strokeWidth={2.5} dot={{ fill: G.accent, r: 4 }} strokeDasharray="5 3" />
+                          <Line type="monotone" dataKey="sr" name="Strike Rate" stroke={G.green} strokeWidth={2.5}
+                            dot={(props) => {
+                              const isSelected = stats.selected_season && props.payload?.season === String(stats.selected_season);
+                              return <circle key={props.key} cx={props.cx} cy={props.cy} r={isSelected ? 7 : 4} fill={isSelected ? G.accent : G.green} stroke={G.white} strokeWidth={isSelected ? 2 : 0} />;
+                            }}
+                          />
+                          <Line type="monotone" dataKey="avg" name="Average" stroke={G.accent} strokeWidth={2.5} strokeDasharray="5 3"
+                            dot={(props) => {
+                              const isSelected = stats.selected_season && props.payload?.season === String(stats.selected_season);
+                              return <circle key={props.key} cx={props.cx} cy={props.cy} r={isSelected ? 7 : 4} fill={isSelected ? G.blue : G.accent} stroke={G.white} strokeWidth={isSelected ? 2 : 0} />;
+                            }}
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
+                    {stats.selected_season && (
+                      <div style={{ fontSize: 11, color: G.gray400, marginTop: 6, textAlign: "right" }}>
+                        ● Highlighted dot = selected season ({stats.selected_season}) · Chart always shows full career trend
+                      </div>
+                    )}
                   </Card>
                 )}
 
@@ -634,7 +764,8 @@ Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesse
                   </div>
                 )}
               </>
-            )}
+              );
+            })()}
           </>
         )}
       </div>

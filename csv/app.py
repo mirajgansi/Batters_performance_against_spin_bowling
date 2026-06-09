@@ -51,6 +51,33 @@ CLUSTER_NAMES = {
     3: "Balanced Performer",
 }
 
+# ── Venue name cleaning map (normalises cricsheet variants → canonical names) ─
+VENUE_MAP = {
+    'Wankhede Stadium, Mumbai'                                             : 'Wankhede Stadium',
+    'Eden Gardens, Kolkata'                                                : 'Eden Gardens',
+    'M Chinnaswamy Stadium, Bengaluru'                                     : 'M Chinnaswamy Stadium',
+    'M.Chinnaswamy Stadium'                                                : 'M Chinnaswamy Stadium',
+    'MA Chidambaram Stadium, Chepauk'                                      : 'MA Chidambaram Stadium',
+    'MA Chidambaram Stadium, Chepauk, Chennai'                             : 'MA Chidambaram Stadium',
+    'Arun Jaitley Stadium, Delhi'                                          : 'Arun Jaitley Stadium',
+    'Rajiv Gandhi International Stadium, Uppal'                            : 'Rajiv Gandhi International Stadium',
+    'Rajiv Gandhi International Stadium, Uppal, Hyderabad'                 : 'Rajiv Gandhi International Stadium',
+    'Punjab Cricket Association Stadium, Mohali'                           : 'Punjab Cricket Association IS Bindra Stadium',
+    'Punjab Cricket Association IS Bindra Stadium, Mohali'                 : 'Punjab Cricket Association IS Bindra Stadium',
+    'Punjab Cricket Association IS Bindra Stadium, Mohali, Chandigarh'    : 'Punjab Cricket Association IS Bindra Stadium',
+    'Sawai Mansingh Stadium, Jaipur'                                       : 'Sawai Mansingh Stadium',
+    'Narendra Modi Stadium, Ahmedabad'                                     : 'Narendra Modi Stadium',
+    'Sardar Patel Stadium, Motera'                                         : 'Narendra Modi Stadium',
+    'Dr DY Patil Sports Academy, Mumbai'                                   : 'Dr DY Patil Sports Academy',
+    'Brabourne Stadium, Mumbai'                                            : 'Brabourne Stadium',
+    'Maharashtra Cricket Association Stadium, Pune'                        : 'Maharashtra Cricket Association Stadium',
+    'Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium, Lucknow': 'Ekana Cricket Stadium',
+    'Himachal Pradesh Cricket Association Stadium, Dharamsala'             : 'Himachal Pradesh Cricket Association Stadium',
+    'Barsapara Cricket Stadium, Guwahati'                                  : 'Barsapara Cricket Stadium',
+    'Maharaja Yadavindra Singh International Cricket Stadium, Mullanpur'   : 'New Chandigarh Stadium',
+    'Maharaja Yadavindra Singh International Cricket Stadium, New Chandigarh': 'New Chandigarh Stadium',
+}
+
 # ── Full v3 feature order (must match training exactly) ───────────────────────
 FEATURES_V3 = [
     "Overs", "BallNumber", "Innings",
@@ -114,35 +141,51 @@ if form_df is not None:
 else:
     print("  form_features.csv NOT found — form_sr_last5 falls back to career SR")
 
-# ── Ball-by-Ball (optional) ───────────────────────────────────────────────────
-bbb_path = os.path.join(BASE_DIR, "Ball_By_Ball_Match_Data.csv")  # ← add this
-bbb_df   = pd.read_csv(bbb_path) if os.path.exists(bbb_path) else None
-if bbb_df is not None:
-    print(f"Ball_By_Ball loaded — columns: {list(bbb_df.columns)}")
+# ── Ball-by-Ball: prefer cricsheet_balls_parsed.csv (has venue+season),
+#    fall back to Ball_By_Ball_Match_Data.csv if missing ──────────────────────
+_cricsheet_path = os.path.join(BASE_DIR, "cricsheet_balls_parsed.csv")
+_bbb_path       = os.path.join(BASE_DIR, "Ball_By_Ball_Match_Data.csv")
 
-    # ── Derive 'phase' from Overs if not present ──────────────────────────
-    if "phase" not in bbb_df.columns:
-        def over_to_phase(o):
-            if o < 6:   return "Powerplay"
-            if o < 15:  return "Middle"
-            return "Death"
-        bbb_df["phase"] = bbb_df["Overs"].apply(over_to_phase)
-        print("  'phase' column derived from Overs")
+if os.path.exists(_cricsheet_path):
+    bbb_df = pd.read_csv(_cricsheet_path)
+    print(f"cricsheet_balls_parsed.csv loaded — {len(bbb_df)} rows, columns: {list(bbb_df.columns)}")
 
-    # ── Derive 'season' from match ID ranges if not present ───────────────
-    # IPL match IDs are sequential by season; map ID ranges to years
+    # ── Alias cricsheet columns → names the rest of the code expects ──────
+    # cricsheet uses: batter, bowler, runs_batter, is_wicket, over, season, venue
+    # old code expects: batter, bowler, batsmanrun, iswicketdelivery, overs, season
+    if "runs_batter" in bbb_df.columns and "batsmanrun" not in bbb_df.columns:
+        bbb_df["batsmanrun"] = bbb_df["runs_batter"]
+    if "is_wicket" in bbb_df.columns and "iswicketdelivery" not in bbb_df.columns:
+        bbb_df["iswicketdelivery"] = bbb_df["is_wicket"]
+    if "over" in bbb_df.columns and "overs" not in bbb_df.columns:
+        bbb_df["overs"] = bbb_df["over"]
+    print("  Column aliases applied (runs_batter→batsmanrun, is_wicket→iswicketdelivery, over→overs)")
+    if "season" in bbb_df.columns:
+        bbb_df["season"] = bbb_df["season"].astype(str).str.split('/').str[0].astype(int)
+        print(f"  Seasons cleaned: {sorted(bbb_df['season'].unique())}")   
+
+    # ── Clean venue names ─────────────────────────────────────────────────
+    if "venue" in bbb_df.columns:
+        bbb_df["venue"] = bbb_df["venue"].replace(VENUE_MAP)
+        print(f"  Venues after cleaning: {bbb_df['venue'].nunique()} unique")
+
+elif os.path.exists(_bbb_path):
+    bbb_df = pd.read_csv(_bbb_path)
+    print(f"Ball_By_Ball_Match_Data.csv loaded (fallback) — {len(bbb_df)} rows")
+    # Lowercase all columns for consistency
+    bbb_df.columns = [c.lower() for c in bbb_df.columns]
+    # Derive season from match ID if not present
     if "season" not in bbb_df.columns:
-        # Approximate ID→season mapping based on known ESPNcricinfo IPL IDs
         def id_to_season(match_id):
-            if   match_id < 392000: return 2008
-            elif match_id < 430000: return 2009
-            elif match_id < 501000: return 2010
-            elif match_id < 548000: return 2011
-            elif match_id < 566000: return 2012
-            elif match_id < 598000: return 2013
-            elif match_id < 729000: return 2014
-            elif match_id < 829000: return 2015
-            elif match_id < 981000: return 2016
+            if   match_id < 392000:  return 2008
+            elif match_id < 430000:  return 2009
+            elif match_id < 501000:  return 2010
+            elif match_id < 548000:  return 2011
+            elif match_id < 566000:  return 2012
+            elif match_id < 598000:  return 2013
+            elif match_id < 729000:  return 2014
+            elif match_id < 829000:  return 2015
+            elif match_id < 981000:  return 2016
             elif match_id < 1082000: return 2017
             elif match_id < 1136000: return 2018
             elif match_id < 1175000: return 2019
@@ -152,14 +195,44 @@ if bbb_df is not None:
             elif match_id < 1370000: return 2023
             elif match_id < 1415000: return 2024
             else:                    return 2025
-        bbb_df["season"] = bbb_df["ID"].apply(id_to_season)
-        print(f"  'season' column derived from ID — seasons: {sorted(bbb_df['season'].unique())}")
-
-    # ── Normalise batter/bowler column names to lowercase ─────────────────
-    bbb_df.columns = [c.lower() for c in bbb_df.columns]
-    print(f"  Columns normalised: {list(bbb_df.columns)}")
+        bbb_df["season"] = bbb_df["id"].apply(id_to_season)
+        print(f"  'season' derived from ID — {sorted(bbb_df['season'].unique())}")
+    if "venue" in bbb_df.columns:
+        bbb_df["venue"] = bbb_df["venue"].replace(VENUE_MAP)
+        print(f"  Venues after cleaning: {bbb_df['venue'].nunique()} unique")
 else:
-    print("Ball_By_Ball_Match_Data.csv not found — phase/season breakdowns will be estimated")
+    bbb_df = None
+    print("No ball-by-ball CSV found — phase/season/venue breakdowns will be estimated")
+
+if bbb_df is not None:
+    # ── Derive phase from overs if not present ────────────────────────────
+    over_col = next((c for c in bbb_df.columns if c in ("overs", "over")), None)
+    if "phase" not in bbb_df.columns and over_col:
+        def over_to_phase(o):
+            if o < 6:  return "Powerplay"
+            if o < 15: return "Middle"
+            return "Death"
+        bbb_df["phase"] = bbb_df[over_col].apply(over_to_phase)
+        print("  'phase' derived from overs")
+
+    # ── Detect venue column ───────────────────────────────────────────────
+    _vcands = [c for c in bbb_df.columns if any(k in c for k in ("venue", "stadium", "ground", "city", "location"))]
+    BBB_VENUE_COL = _vcands[0] if _vcands else None
+    print(f"  Venue column: {BBB_VENUE_COL}")
+    print(f"  All columns: {list(bbb_df.columns)}")
+else:
+    BBB_VENUE_COL = None
+
+# ── bowler_spin_stats.csv: pre-computed spin type per bowler ──────────────────
+_bss_path = os.path.join(BASE_DIR, "bowler_spin_stats.csv")
+bowler_spin_df = pd.read_csv(_bss_path) if os.path.exists(_bss_path) else None
+if bowler_spin_df is not None:
+    print(f"bowler_spin_stats.csv loaded — {len(bowler_spin_df)} bowlers")
+    # Build fast lookup: bowler_name → spin_type_key
+    BOWLER_SPIN_LOOKUP = dict(zip(bowler_spin_df["bowler"], bowler_spin_df["spin_type"]))
+else:
+    print("bowler_spin_stats.csv not found — will derive spin type from players_df")
+    BOWLER_SPIN_LOOKUP = {}
 
 # ── Validation CSVs (optional — produced by IPL_Spin_Validation__2_.ipynb) ────
 _val_overall_path = os.path.join(BASE_DIR, "validation_batter_overall.csv")
@@ -397,12 +470,101 @@ def get_venues():
     ])
 
 
+# ── GET /player-seasons/<player_id> ──────────────────────────────────────────
+@app.route("/player-seasons/<int:player_id>", methods=["GET"])
+def player_seasons(player_id):
+    """
+    Return seasons the specific player has ball-by-ball data for, with ball counts.
+    Used to populate the season filter dropdown dynamically per player.
+    Response: { seasons: [ { season: "2023", balls: 142, low_data: false }, ... ] }
+    LOW_DATA_THRESHOLD: fewer than 30 balls in a season = low data warning.
+    """
+    LOW_DATA = 30
+
+    batter_name = get_batter_name(player_id)
+    if not batter_name:
+        return jsonify({"error": "Player not found"}), 404
+
+    if bbb_df is None or "season" not in bbb_df.columns:
+        return jsonify({"seasons": []})
+
+    batter_col = None
+    for col in ["batter", "Batter"]:
+        if col in bbb_df.columns:
+            batter_col = col
+            break
+    if not batter_col:
+        return jsonify({"seasons": []})
+
+    player_rows = bbb_df[bbb_df[batter_col] == batter_name]
+    if player_rows.empty:
+        return jsonify({"seasons": []})
+
+    result = []
+    for season in sorted(player_rows["season"].dropna().unique(), reverse=True):
+        balls = int((player_rows["season"] == season).sum())
+        result.append({
+            "season":   str(int(season)),
+            "balls":    balls,
+            "low_data": balls < LOW_DATA,
+        })
+
+    return jsonify({"seasons": result})
+
+
+# ── GET /player-venues/<player_id> ───────────────────────────────────────────
+@app.route("/player-venues/<int:player_id>", methods=["GET"])
+def player_venues(player_id):
+    """
+    Return venues the specific player has ball-by-ball data for, with ball counts.
+    Used to populate the venue filter dropdown dynamically per player.
+    Response: { venues: [ { venue: "Wankhede Stadium", balls: 98, low_data: false }, ... ] }
+    LOW_DATA_THRESHOLD: fewer than 20 balls at a venue = low data warning.
+    """
+    LOW_DATA = 20
+
+    batter_name = get_batter_name(player_id)
+    if not batter_name:
+        return jsonify({"error": "Player not found"}), 404
+
+    if bbb_df is None or not BBB_VENUE_COL or BBB_VENUE_COL not in bbb_df.columns:
+        return jsonify({"venues": []})
+
+    batter_col = next((c for c in bbb_df.columns if c in ("batter", "Batter")), None)
+    if not batter_col:
+        return jsonify({"venues": []})
+
+    player_rows = bbb_df[bbb_df[batter_col] == batter_name]
+    if player_rows.empty:
+        return jsonify({"venues": []})
+
+    venue_counts = (
+        player_rows[BBB_VENUE_COL]
+        .dropna()
+        .value_counts()
+        .reset_index()
+    )
+    venue_counts.columns = ["venue", "balls"]
+
+    result = []
+    for _, row in venue_counts.sort_values("venue").iterrows():
+        balls = int(row["balls"])
+        result.append({
+            "venue":    str(row["venue"]),
+            "balls":    balls,
+            "low_data": balls < LOW_DATA,
+        })
+
+    return jsonify({"venues": result})
+
+
 # ── GET /player-stats/<player_id> ─────────────────────────────────────────────
 @app.route("/player-stats/<int:player_id>", methods=["GET"])
 def player_stats(player_id):
     # Read filter params from query string
     filter_season   = request.args.get("season",   None)   # e.g. "2023"
     filter_spin_key = request.args.get("spin_type", None)  # e.g. "legbreak"
+    filter_venue    = request.args.get("venue",    None)   # e.g. "Wankhede Stadium"
 
     batter_name = get_batter_name(player_id)
     if not batter_name:
@@ -423,13 +585,20 @@ def player_stats(player_id):
         if filter_season:
             bbb_filtered = bbb_filtered[bbb_filtered["season"] == int(filter_season)]
         if filter_spin_key:
-            # Build bowler list for this spin type first (reuse logic below)
-            _spin_bowlers = [
-                (row.get("Name") or row.get("longName", ""))
-                for _, row in players_df.iterrows()
-                if filter_spin_key in str(row.get("longBowlingStyles", "")).lower()
-            ]
+            # Use pre-computed lookup if available, else scan players_df
+            if BOWLER_SPIN_LOOKUP:
+                _spin_bowlers = [b for b, s in BOWLER_SPIN_LOOKUP.items() if s == filter_spin_key]
+            else:
+                _spin_bowlers = [
+                    (row.get("Name") or row.get("longName", ""))
+                    for _, row in players_df.iterrows()
+                    if filter_spin_key in str(row.get("longBowlingStyles", "")).lower()
+                ]
             bbb_filtered = bbb_filtered[bbb_filtered["bowler"].isin(_spin_bowlers)]
+        if filter_venue and BBB_VENUE_COL and BBB_VENUE_COL in bbb_filtered.columns:
+            # Exact match first; fall back to contains if nothing found
+            exact = bbb_filtered[bbb_filtered[BBB_VENUE_COL] == filter_venue]
+            bbb_filtered = exact if not exact.empty else bbb_filtered[bbb_filtered[BBB_VENUE_COL].str.contains(filter_venue, case=False, na=False)]
     sr           = float(bf.get("sr", 0))
     avg          = float(bf.get("avg", 0))
     dot_pct      = float(bf.get("dot_pct", 0))
@@ -440,7 +609,7 @@ def player_stats(player_id):
     total_balls  = int(bf.get("total_balls", 0))
     dismissals   = int(bf.get("dismissals", 0))
 
-    if bbb_filtered is not None and (filter_season or filter_spin_key):
+    if bbb_filtered is not None and (filter_season or filter_spin_key or filter_venue):
         bbb_player_filtered = bbb_filtered[bbb_filtered["batter"] == batter_name]
         if not bbb_player_filtered.empty:
             f_balls      = len(bbb_player_filtered)
@@ -542,14 +711,19 @@ def player_stats(player_id):
         ("left-arm wrist-spin",    "Left Arm Wrist Spin", "LWS"),
     ]
 
-    bowler_spin_map = {}
-    for _, row in players_df.iterrows():
-        name  = row.get("Name") or row.get("longName", "")
-        style = str(row.get("longBowlingStyles", "")).lower()
-        for spin_key, _, _ in SPIN_TYPES:
-            if spin_key in style:
-                bowler_spin_map[name] = spin_key
-                break
+    # Use pre-computed bowler_spin_stats.csv if available (faster, more complete)
+    # Falls back to scanning players_df
+    if BOWLER_SPIN_LOOKUP:
+        bowler_spin_map = dict(BOWLER_SPIN_LOOKUP)
+    else:
+        bowler_spin_map = {}
+        for _, row in players_df.iterrows():
+            name  = row.get("Name") or row.get("longName", "")
+            style = str(row.get("longBowlingStyles", "")).lower()
+            for spin_key, _, _ in SPIN_TYPES:
+                if spin_key in style:
+                    bowler_spin_map[name] = spin_key
+                    break
 
     spin_comparison = []
     BBB_BOWLER_COL  = None
@@ -593,14 +767,36 @@ def player_stats(player_id):
         })
 
     # ── Season trend ──────────────────────────────────────────────────────────
+    # Always use the UNFILTERED bbb_df so the chart shows all seasons even when
+    # the user has selected a specific season in the filter dropdown.
     seasons = []
-    if bbb_filtered is not None and "season" in bbb_filtered.columns and BBB_BATTER_COL:
-        bbb_player = bbb_filtered[bbb_filtered[BBB_BATTER_COL] == batter_name]
-        for season in sorted(bbb_player["season"].dropna().unique()):
-            s = bbb_player[bbb_player["season"] == season]
-            s_balls  = len(s)
-            s_runs = s["batsmanrun"].sum() if "batsmanrun" in s.columns else 0
-            s_wkts = s["iswicketdelivery"].sum() if "iswicketdelivery" in s.columns else 0
+    _bbb_for_trend = bbb_df  # never the season-filtered copy
+    _batter_col_trend = None
+    if _bbb_for_trend is not None:
+        for col in ["batter", "Batter"]:
+            if col in _bbb_for_trend.columns:
+                _batter_col_trend = col
+                break
+
+    # Optionally apply spin_type filter to the trend (keeps spin-type context)
+    if _bbb_for_trend is not None and filter_spin_key and "bowler" in _bbb_for_trend.columns:
+        if BOWLER_SPIN_LOOKUP:
+            _spin_bowlers_trend = [b for b, s in BOWLER_SPIN_LOOKUP.items() if s == filter_spin_key]
+        else:
+            _spin_bowlers_trend = [
+                (row.get("Name") or row.get("longName", ""))
+                for _, row in players_df.iterrows()
+                if filter_spin_key in str(row.get("longBowlingStyles", "")).lower()
+            ]
+        _bbb_for_trend = _bbb_for_trend[_bbb_for_trend["bowler"].isin(_spin_bowlers_trend)]
+
+    if _bbb_for_trend is not None and "season" in _bbb_for_trend.columns and _batter_col_trend:
+        bbb_player_trend = _bbb_for_trend[_bbb_for_trend[_batter_col_trend] == batter_name]
+        for season in sorted(bbb_player_trend["season"].dropna().astype(str).str.split('/').str[0].astype(int).unique()):
+            s = bbb_player_trend[bbb_player_trend["season"] == season]
+            s_balls = len(s)
+            s_runs  = s["batsmanrun"].sum() if "batsmanrun" in s.columns else 0
+            s_wkts  = s["iswicketdelivery"].sum() if "iswicketdelivery" in s.columns else 0
             seasons.append({
                 "season": str(int(season)),
                 "sr":     round(s_runs / s_balls * 100, 1) if s_balls > 0 else 0,
@@ -637,6 +833,8 @@ def player_stats(player_id):
         "dismissals":        dismissals_data,
         "spinComparison":    spin_comparison,
         "seasons":           seasons,
+        "selected_season":   filter_season,
+        "selected_venue":    filter_venue,
         "batter_features":   bf.to_dict(),
         "batter_vs_spin":    bvs_rows.to_dict(orient="records"),
     })
