@@ -48,38 +48,49 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
+// ── Ollama config ──────────────────────────────────────────────────────────────
+const OLLAMA_URL   = "http://localhost:11434";
+const OLLAMA_MODEL = "llama3";   // ← change to whichever model you have pulled
+
 async function callClaude(prompt, onToken) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  // callClaude name kept so all 3 call sites need no changes
+  const response = await fetch(`${OLLAMA_URL}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
+      model:  OLLAMA_MODEL,
+      prompt: prompt,
       stream: true,
-      messages: [{ role: "user", content: prompt }],
+      options: { num_predict: 400, temperature: 0.7 },
     }),
   });
-  const reader = response.body.getReader();
+
+  if (!response.ok) {
+    throw new Error(`Ollama error ${response.status} — is Ollama running? (ollama serve)`);
+  }
+
+  const reader  = response.body.getReader();
   const decoder = new TextDecoder();
-  let fullText = "";
+  let fullText  = "";
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
+    // Ollama streams one JSON object per line
     for (const line of decoder.decode(value).split("\n")) {
-      if (line.startsWith("data: ")) {
-        try {
-          const d = JSON.parse(line.slice(6));
-          if (d.type === "content_block_delta" && d.delta?.text) {
-            fullText += d.delta.text;
-            onToken(fullText);
-          }
-        } catch {}
-      }
+      if (!line.trim()) continue;
+      try {
+        const chunk = JSON.parse(line);
+        if (chunk.response) {
+          fullText += chunk.response;
+          onToken(fullText);
+        }
+        if (chunk.done) break;
+      } catch {}
     }
   }
   return fullText;
 }
-
 // ─── SHARED UI COMPONENTS ──────────────────────────────────────────────────────
 function initials(name = "?") {
   return (name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -173,7 +184,6 @@ function Sidebar({ page, setPage, collapsed, setCollapsed }) {
   const navItems = [
     { id: "dashboard", label: "Analysis Dashboard", icon: "📊" },
     { id: "prediction", label: "Match Prediction",  icon: "🔮" },
-    { id: "saved",      label: "Saved Predictions", icon: "📋" },
   ];
   return (
     <aside style={{
@@ -789,6 +799,7 @@ function PredictionPage({ players, venues, teams, spinBowlers, apiOk }) {
   const [aiPredLoad,  setAiPredLoad]  = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [saveMsg,     setSaveMsg]     = useState("");
+  const [oppBowler,   setOppBowler]   = useState(null);
 
   // Init venue & team when lists load
   useEffect(() => { if (venues.length && !venue) setVenue(venues[0]); }, [venues]);
@@ -818,7 +829,7 @@ function PredictionPage({ players, venues, teams, spinBowlers, apiOk }) {
       const spinLabel = SPIN_TYPE_OPTIONS.find(s => s.value === spinType)?.label || spinType;
       const prompt = `You are an IPL cricket match predictor. Explain this prediction for ${player.longName || player.Name}:
 Match: vs ${oppTeam} at ${venue}, ${PHASE_OPTIONS.find(p=>p.value===phase)?.label}, Innings ${innings}
-Spin type: ${spinLabel}, Balls to predict: ${nBalls}
+Spin type: ${spinLabel}, Balls to predict: ${nBalls}${oppBowler ? `\nOpponent Bowler: ${oppBowler.longName || oppBowler.Name} (${oppBowler.spinLabel})` : ""}
 Predicted: ${data.predicted_runs} runs, SR: ${data.predicted_sr}, Dismissal prob/ball: ${data.dismissal_prob_pct}%
 Expected runs (risk-adj): ${data.expected_runs}, Dismiss in spell: ${data.dismiss_in_spell_pct}%
 Confidence: ${data.confidence}%, Cluster: ${data.cluster_name}, Model: ${data.model_version}
@@ -831,31 +842,31 @@ Explain in 3-4 sentences: why this was predicted, key tactical factors, what cou
     setPredLoading(false);
   };
 
-  const savePred = async () => {
-    if (!predResult || !player) return;
-    setSaving(true); setSaveMsg("");
-    try {
-      await apiFetch("/save-prediction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          player_id:      player.ID,
-          batter_name:    player.longName || player.Name,
-          match:          `${player.longName || player.Name} vs ${oppTeam}`,
-          venue, spin_type: spinType, phase, innings, n_balls: nBalls,
-          predicted_sr:   predResult.predicted_sr,
-          predicted_runs: predResult.predicted_runs,
-          dismissal_prob: predResult.dismissal_prob_pct,
-          confidence:     predResult.confidence,
-          cluster_name:   predResult.cluster_name,
-          model_version:  predResult.model_version,
-          ai_explanation: aiPredText,
-        }),
-      });
-      setSaveMsg("✅ Prediction saved!");
-    } catch { setSaveMsg("❌ Save failed."); }
-    setSaving(false);
-  };
+  // const savePred = async () => {
+  //   if (!predResult || !player) return;
+  //   setSaving(true); setSaveMsg("");
+  //   try {
+  //     await apiFetch("/save-prediction", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         player_id:      player.ID,
+  //         batter_name:    player.longName || player.Name,
+  //         match:          `${player.longName || player.Name} vs ${oppTeam}`,
+  //         venue, spin_type: spinType, phase, innings, n_balls: nBalls,
+  //         predicted_sr:   predResult.predicted_sr,
+  //         predicted_runs: predResult.predicted_runs,
+  //         dismissal_prob: predResult.dismissal_prob_pct,
+  //         confidence:     predResult.confidence,
+  //         cluster_name:   predResult.cluster_name,
+  //         model_version:  predResult.model_version,
+  //         ai_explanation: aiPredText,
+  //       }),
+  //     });
+  //     setSaveMsg("✅ Prediction saved!");
+  //   } catch { setSaveMsg("❌ Save failed."); }
+  //   setSaving(false);
+  // };
 
   const riskColor = predResult?.confidence >= 75 ? G.green : predResult?.confidence >= 55 ? G.amber : G.red;
   const riskLabel = predResult?.confidence >= 75 ? "Low Risk" : predResult?.confidence >= 55 ? "Medium Risk" : "High Risk";
@@ -899,9 +910,9 @@ Explain in 3-4 sentences: why this was predicted, key tactical factors, what cou
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: G.gray500, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>Opponent Team</label>
-            <select value={oppTeam} onChange={e => setOppTeam(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
-              {teams.map(t => <option key={t}>{t}</option>)}
-            </select>
+              <select value={oppTeam} onChange={e => setOppTeam(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", outline: "none" }}>
+                {teams.map(t => <option key={t}>{t}</option>)}
+              </select>
           </div>
         </Card>
 
@@ -952,14 +963,53 @@ Explain in 3-4 sentences: why this was predicted, key tactical factors, what cou
       {spinBowlers.length > 0 && (
         <Card style={{ marginBottom: 16 }}>
           <SectionTitle icon="🎳">Spin Bowlers in Dataset <span style={{ fontWeight: 400, fontSize: 12, color: G.gray400 }}>({spinBowlers.length} total)</span></SectionTitle>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-            {spinBowlers.slice(0, 12).map(b => (
-              <div key={b.ID} style={{ padding: "12px 14px", borderRadius: 10, background: G.gray50, border: `1px solid ${G.gray200}` }}>
-                <Avatar name={b.longName || b.Name} size={36} color={G.green} />
-                <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13, color: G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{b.longName || b.Name}</div>
-                <div style={{ fontSize: 11, color: G.gray500, marginTop: 2 }}>{b.spinLabel}</div>
+
+          {/* Selected Opponent Bowler Display */}
+          {oppBowler ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, padding: "14px 16px", background: `linear-gradient(135deg, ${G.accentLight}, #fff7ed)`, border: `1px solid ${G.accent}40`, borderLeft: `4px solid ${G.accent}`, borderRadius: 10 }}>
+              <Avatar name={oppBowler.longName || oppBowler.Name} size={52} color={G.accent} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: G.accent, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Opponent Bowler Selected</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3 }}>{oppBowler.longName || oppBowler.Name}</div>
+                <div style={{ marginTop: 4 }}>
+                  <Badge label={oppBowler.spinLabel} color={G.accent} bg={G.accentLight} />
+                </div>
               </div>
-            ))}
+              <button onClick={() => setOppBowler(null)} style={{ padding: "6px 12px", background: "transparent", border: `1px solid ${G.gray300}`, borderRadius: 7, fontSize: 11, color: G.gray500, cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600 }}>✕ Clear</button>
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: G.gray400, marginBottom: 10, fontStyle: "italic" }}>Click a bowler below to set them as the opponent bowler.</div>
+          )}
+
+          {/* Bowler Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+            {spinBowlers.slice(0, 12).map(b => {
+              const isSelected = oppBowler?.ID === b.ID;
+              return (
+                <div
+                  key={b.ID}
+                  onClick={() => {
+                    setOppBowler(isSelected ? null : b);
+                    // Also sync the spin type selector to match this bowler
+                    const spinValue = b.longBowlingStyles?.toLowerCase();
+                    const match = SPIN_TYPE_OPTIONS.find(s => s.value === spinValue);
+                    if (match && !isSelected) setSpinType(match.value);
+                  }}
+                  style={{
+                    padding: "12px 14px", borderRadius: 10, cursor: "pointer",
+                    background: isSelected ? G.accentLight : G.gray50,
+                    border: `2px solid ${isSelected ? G.accent : G.gray200}`,
+                    transition: "all 0.15s",
+                    boxShadow: isSelected ? `0 0 0 3px ${G.accent}20` : "none",
+                  }}
+                >
+                  <Avatar name={b.longName || b.Name} size={36} color={isSelected ? G.accent : G.green} />
+                  <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13, color: isSelected ? G.accent : G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{b.longName || b.Name}</div>
+                  <div style={{ fontSize: 11, color: isSelected ? G.accent : G.gray500, marginTop: 2 }}>{b.spinLabel}</div>
+                  {isSelected && <div style={{ fontSize: 10, color: G.accent, fontWeight: 700, marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>✓ Selected</div>}
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
@@ -1032,14 +1082,16 @@ Explain in 3-4 sentences: why this was predicted, key tactical factors, what cou
           </div>
 
           {/* Save Button */}
-          <button onClick={savePred} disabled={saving || !!saveMsg} style={{
+          {/* <button onClick={savePred} disabled={saving || !!saveMsg} style={{
             width: "100%", padding: "12px", background: saveMsg ? G.gray200 : G.gray800, color: saveMsg ? G.gray500 : G.white,
             border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer",
             fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 8, transition: "all 0.15s",
           }}>{saving ? "Saving…" : "💾 Save Prediction"}</button>
           {saveMsg && <div style={{ fontSize: 12, color: saveMsg.startsWith("✅") ? G.green : G.red, textAlign: "center" }}>{saveMsg}</div>}
-        </>
+        */}
+        </>   
       )}
+      
     </div>
   );
 }
