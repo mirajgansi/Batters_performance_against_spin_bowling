@@ -959,61 +959,7 @@ Explain in 3-4 sentences: why this was predicted, key tactical factors, what cou
         </div>
       </Card>
 
-      {/* Spin Bowlers Reference */}
-      {spinBowlers.length > 0 && (
-        <Card style={{ marginBottom: 16 }}>
-          <SectionTitle icon="🎳">Spin Bowlers in Dataset <span style={{ fontWeight: 400, fontSize: 12, color: G.gray400 }}>({spinBowlers.length} total)</span></SectionTitle>
-
-          {/* Selected Opponent Bowler Display */}
-          {oppBowler ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, padding: "14px 16px", background: `linear-gradient(135deg, ${G.accentLight}, #fff7ed)`, border: `1px solid ${G.accent}40`, borderLeft: `4px solid ${G.accent}`, borderRadius: 10 }}>
-              <Avatar name={oppBowler.longName || oppBowler.Name} size={52} color={G.accent} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: G.accent, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Opponent Bowler Selected</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: G.gray900, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3 }}>{oppBowler.longName || oppBowler.Name}</div>
-                <div style={{ marginTop: 4 }}>
-                  <Badge label={oppBowler.spinLabel} color={G.accent} bg={G.accentLight} />
-                </div>
-              </div>
-              <button onClick={() => setOppBowler(null)} style={{ padding: "6px 12px", background: "transparent", border: `1px solid ${G.gray300}`, borderRadius: 7, fontSize: 11, color: G.gray500, cursor: "pointer", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600 }}>✕ Clear</button>
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: G.gray400, marginBottom: 10, fontStyle: "italic" }}>Click a bowler below to set them as the opponent bowler.</div>
-          )}
-
-          {/* Bowler Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-            {spinBowlers.slice(0, 12).map(b => {
-              const isSelected = oppBowler?.ID === b.ID;
-              return (
-                <div
-                  key={b.ID}
-                  onClick={() => {
-                    setOppBowler(isSelected ? null : b);
-                    // Also sync the spin type selector to match this bowler
-                    const spinValue = b.longBowlingStyles?.toLowerCase();
-                    const match = SPIN_TYPE_OPTIONS.find(s => s.value === spinValue);
-                    if (match && !isSelected) setSpinType(match.value);
-                  }}
-                  style={{
-                    padding: "12px 14px", borderRadius: 10, cursor: "pointer",
-                    background: isSelected ? G.accentLight : G.gray50,
-                    border: `2px solid ${isSelected ? G.accent : G.gray200}`,
-                    transition: "all 0.15s",
-                    boxShadow: isSelected ? `0 0 0 3px ${G.accent}20` : "none",
-                  }}
-                >
-                  <Avatar name={b.longName || b.Name} size={36} color={isSelected ? G.accent : G.green} />
-                  <div style={{ marginTop: 8, fontWeight: 700, fontSize: 13, color: isSelected ? G.accent : G.gray800, fontFamily: "'Barlow Condensed', sans-serif" }}>{b.longName || b.Name}</div>
-                  <div style={{ fontSize: 11, color: isSelected ? G.accent : G.gray500, marginTop: 2 }}>{b.spinLabel}</div>
-                  {isSelected && <div style={{ fontSize: 10, color: G.accent, fontWeight: 700, marginTop: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>✓ Selected</div>}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
+  
       {/* Generate Button */}
       <button onClick={generate} disabled={predLoading || !player} style={{
         width: "100%", padding: "14px", background: !player ? G.gray300 : G.green, color: G.white,

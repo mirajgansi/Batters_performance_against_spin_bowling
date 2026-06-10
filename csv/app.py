@@ -118,11 +118,18 @@ else:
     print(f"  Synthesised and cached — {len(bvs_df)} rows")
 
 # ── v3 CSVs (optional — fall back to means if missing) ───────────────────────
-_venue_path = os.path.join(BASE_DIR, "venue_features.csv")
-_form_path  = os.path.join(BASE_DIR, "form_features.csv")
+_venue_path      = os.path.join(BASE_DIR, "venue_features.csv")
+_form_path       = os.path.join(BASE_DIR, "form_features.csv")
+_bsf_path        = os.path.join(BASE_DIR, "batter_spin_features.csv")  # per-spin-type stats
 
-venue_df = pd.read_csv(_venue_path) if os.path.exists(_venue_path) else None
-form_df  = pd.read_csv(_form_path)  if os.path.exists(_form_path)  else None
+venue_df         = pd.read_csv(_venue_path) if os.path.exists(_venue_path) else None
+form_df          = pd.read_csv(_form_path)  if os.path.exists(_form_path)  else None
+batter_spin_df   = pd.read_csv(_bsf_path)  if os.path.exists(_bsf_path)   else None
+
+if batter_spin_df is not None:
+    print(f"  batter_spin_features.csv loaded — {len(batter_spin_df)} batter×spin rows")
+else:
+    print("  batter_spin_features.csv NOT found — /predict will use career stats only (retrain notebook to fix)")
 
 MODEL_VERSION = "v3" if (venue_df is not None and form_df is not None) else "v1"
 print(f"Model version detected: {MODEL_VERSION}")
@@ -302,11 +309,31 @@ def get_form_sr(batter_name: str, fallback_sr: float) -> float:
     return fallback_sr
 
 
+def get_spin_specific_stats(batter_name: str, spin_type: str) -> dict | None:
+    """
+    Return per-spin-type stats for a batter from batter_spin_features.csv.
+    Returns None if the file isn't loaded or the batter has < 20 balls vs that spin type.
+    """
+    MIN_BALLS_SPIN = 20
+    if batter_spin_df is None:
+        return None
+    row = batter_spin_df[
+        (batter_spin_df["Batter"]    == batter_name) &
+        (batter_spin_df["spin_type"] == spin_type)
+    ]
+    if row.empty or int(row.iloc[0].get("total_balls", 0)) < MIN_BALLS_SPIN:
+        return None
+    return row.iloc[0].to_dict()
+
+
 def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
                           phase: str, innings: int,
-                          venue: str, batter_name: str):
+                          venue: str, batter_name: str,
+                          spin_type: str = ""):
     """
     Build the correct feature DataFrame for whichever model version is active.
+    Uses per-spin-type batter stats when available (batter_spin_features.csv),
+    falls back to career stats (batter_features.csv) otherwise.
     Returns (DataFrame, feature_list_used).
     """
     over_map = {"Powerplay": 3, "powerplay": 3,
@@ -315,13 +342,17 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
     over_num = over_map.get(phase, 10)
     ball_num = 3
 
-    sr           = float(bf.get("sr", 100))
-    avg          = float(bf.get("avg", 25))
-    dot_pct      = float(bf.get("dot_pct", 40))
-    boundary_pct = float(bf.get("boundary_pct", 15))
-    six_pct      = float(bf.get("six_pct", 5))
-    wkt_rate     = float(bf.get("wkt_rate", 5))
-    rotation_pct = float(bf.get("rotation_pct", 25))
+    # Use spin-specific stats if available, otherwise career stats
+    spin_bf = get_spin_specific_stats(batter_name, spin_type) if spin_type else None
+    src     = spin_bf if spin_bf is not None else bf
+
+    sr           = float(src.get("sr", 100))
+    avg          = float(src.get("avg", 25))
+    dot_pct      = float(src.get("dot_pct", 40))
+    boundary_pct = float(src.get("boundary_pct", 15))
+    six_pct      = float(src.get("six_pct", 5))
+    wkt_rate     = float(src.get("wkt_rate", 5))
+    rotation_pct = float(src.get("rotation_pct", 25))
 
     if MODEL_VERSION == "v3":
         cluster           = get_cluster(bf)
@@ -876,7 +907,8 @@ def predict():
             phase_enc = {"powerplay": 0, "middle": 1, "death": 2}.get(phase.lower(), 1)
 
         model_features, features_used = build_feature_vector(
-            bf, spin_enc, phase_enc, phase, innings, venue, batter_name
+            bf, spin_enc, phase_enc, phase, innings, venue, batter_name,
+            spin_type=spin_type,
         )
 
         raw_prediction = float(model_runs.predict(model_features)[0])
@@ -888,9 +920,11 @@ def predict():
         expected_runs        = round(pred_runs_total * (1 - dismissal_prob), 1)
         dismiss_in_spell_pct = round((1 - (1 - dismissal_prob) ** n_balls) * 100, 1)
 
-        balls_faced = float(bf.get("total_balls", 50))
-        confidence  = round(min(95, 60 + (balls_faced ** 0.5) * 1.2), 1)
-        cluster     = get_cluster(bf)
+        balls_faced   = float(bf.get("total_balls", 50))
+        confidence    = round(min(95, 60 + (balls_faced ** 0.5) * 1.2), 1)
+        cluster       = get_cluster(bf)
+        spin_bf       = get_spin_specific_stats(batter_name, spin_type)
+        data_source   = f"spin-specific ({spin_type})" if spin_bf else "career fallback"
 
         return jsonify({
             "predicted_sr":         predicted_sr,
@@ -906,6 +940,7 @@ def predict():
             "phase":                phase,
             "venue":                venue,
             "model_version":        MODEL_VERSION,
+            "data_source":          data_source,
             "features_used":        len(features_used),
             "n_balls":              n_balls,
         })
