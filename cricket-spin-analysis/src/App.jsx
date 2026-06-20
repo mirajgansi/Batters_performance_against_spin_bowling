@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Papa from "papaparse";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend,
@@ -8,6 +9,8 @@ import {
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────────
 const API = "http://localhost:5000";
+// CSV lives in Vite's /public folder, so it's served from the root path at runtime.
+const PLAYERS_CSV_URL = "/2026_players_details.csv";
 
 // ─── DESIGN TOKENS ─────────────────────────────────────────────────────────────
 const G = {
@@ -46,6 +49,33 @@ async function apiFetch(path, opts = {}) {
   const res = await fetch(`${API}${path}`, opts);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+}
+
+// ─── PLAYER PHOTO CSV LOADER ────────────────────────────────────────────────────
+// Loads /2026_players_details.csv (Vite public folder) and builds an
+// ID -> imgUrl lookup map so player photos can be shown without touching the
+// Flask API or player objects it returns.
+async function loadPlayerPhotoMap(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch player CSV: HTTP ${res.status}`);
+  const csvText = await res.text();
+
+  return new Promise((resolve, reject) => {
+    Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const map = {};
+        for (const row of results.data) {
+          const id = row.ID || row.id;
+          const imgUrl = (row.imgUrl || "").trim();
+          if (id && imgUrl) map[String(id)] = imgUrl;
+        }
+        resolve(map);
+      },
+      error: (err) => reject(err),
+    });
+  });
 }
 
 // ── Ollama config ──────────────────────────────────────────────────────────────
@@ -104,6 +134,33 @@ function Avatar({ name, size = 40, color = G.green }) {
       color: "#fff", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0,
       fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1,
     }}>{initials(name)}</div>
+  );
+}
+
+// PhotoAvatar: shows the real player photo (from the CSV-derived photoMap) when
+// available, and gracefully falls back to the colored-initials Avatar if the
+// player has no photo on file or the image fails to load. Used in the
+// dashboard hero only.
+function PhotoAvatar({ id, name, size = 40, color = G.green, photoUrl }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => { setFailed(false); }, [photoUrl]);
+
+  if (!photoUrl || failed) {
+    return <Avatar name={name} size={size} color={color} />;
+  }
+
+  return (
+    <img
+      src={photoUrl}
+      alt={name || "Player"}
+      onError={() => setFailed(true)}
+      style={{
+        width: size, height: size, borderRadius: "50%", flexShrink: 0,
+        objectFit: "cover", background: G.gray200,
+        border: `2px solid rgba(255,255,255,0.15)`,
+      }}
+    />
   );
 }
 
@@ -363,7 +420,7 @@ function PlayerSearch({ players, selected, onSelect, placeholder = "Search IPL B
 }
 
 // ─── PAGE 1: DASHBOARD ─────────────────────────────────────────────────────────
-function DashboardPage({ players, venues, apiOk }) {
+function DashboardPage({ players, venues, apiOk, photoMap }) {
   const [player,        setPlayer]        = useState(null);
   const [stats,         setStats]         = useState(null);
   const [statsLoad,     setStatsLoad]     = useState(false);
@@ -475,7 +532,13 @@ Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesse
             }}>
               <div style={{ position: "absolute", top: 0, right: 0, width: 200, height: 200, background: `${G.green}20`, borderRadius: "50%", transform: "translate(60px,-60px)" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative" }}>
-                <Avatar name={player.longName || player.Name} size={72} color={G.green} />
+                <PhotoAvatar
+                  id={player.ID}
+                  name={player.longName || player.Name}
+                  size={72}
+                  color={G.green}
+                  photoUrl={photoMap?.[String(player.ID)]}
+                />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 28, fontWeight: 700, color: G.white, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.5 }}>{player.longName || player.Name}</div>
                   <div style={{ fontSize: 14, color: G.greenMid, fontWeight: 600, marginTop: 2 }}>{player.longTeamNames || ""}</div>
@@ -842,31 +905,6 @@ Explain in 3-4 sentences: why this was predicted, key tactical factors, what cou
     setPredLoading(false);
   };
 
-  // const savePred = async () => {
-  //   if (!predResult || !player) return;
-  //   setSaving(true); setSaveMsg("");
-  //   try {
-  //     await apiFetch("/save-prediction", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         player_id:      player.ID,
-  //         batter_name:    player.longName || player.Name,
-  //         match:          `${player.longName || player.Name} vs ${oppTeam}`,
-  //         venue, spin_type: spinType, phase, innings, n_balls: nBalls,
-  //         predicted_sr:   predResult.predicted_sr,
-  //         predicted_runs: predResult.predicted_runs,
-  //         dismissal_prob: predResult.dismissal_prob_pct,
-  //         confidence:     predResult.confidence,
-  //         cluster_name:   predResult.cluster_name,
-  //         model_version:  predResult.model_version,
-  //         ai_explanation: aiPredText,
-  //       }),
-  //     });
-  //     setSaveMsg("✅ Prediction saved!");
-  //   } catch { setSaveMsg("❌ Save failed."); }
-  //   setSaving(false);
-  // };
 
   const riskColor = predResult?.confidence >= 75 ? G.green : predResult?.confidence >= 55 ? G.amber : G.red;
   const riskLabel = predResult?.confidence >= 75 ? "Low Risk" : predResult?.confidence >= 55 ? "Medium Risk" : "High Risk";
@@ -1330,6 +1368,7 @@ export default function App() {
   const [venues,    setVenues]    = useState([]);
   const [teams,     setTeams]     = useState([]);
   const [spinBowlers, setSpinBowlers] = useState([]);
+  const [photoMap,  setPhotoMap]  = useState({}); // ID -> imgUrl, loaded from /2026_players_details.csv
 
   // Health poll every 10s
   useEffect(() => {
@@ -1353,6 +1392,13 @@ export default function App() {
     apiFetch("/spin-bowlers").then(setSpinBowlers).catch(() => {});
   }, [apiStatus]);
 
+  // Load player photo lookup map from the CSV in /public once, independent of API status.
+  useEffect(() => {
+    loadPlayerPhotoMap(PLAYERS_CSV_URL)
+      .then(setPhotoMap)
+      .catch(() => setPhotoMap({}));
+  }, []);
+
   const apiOk = apiStatus === "connected";
 
   return (
@@ -1375,7 +1421,7 @@ export default function App() {
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
           <Topbar page={page} apiStatus={apiStatus} batterCount={players.length} />
           <div style={{ flex: 1, overflowY: "auto" }}>
-            {page === "dashboard"  && <DashboardPage  players={players} venues={venues} apiOk={apiOk} />}
+            {page === "dashboard"  && <DashboardPage  players={players} venues={venues} apiOk={apiOk} photoMap={photoMap} />}
             {page === "prediction" && <PredictionPage players={players} venues={venues} teams={teams} spinBowlers={spinBowlers} apiOk={apiOk} />}
             {page === "saved"      && <SavedPage apiOk={apiOk} />}
           </div>
