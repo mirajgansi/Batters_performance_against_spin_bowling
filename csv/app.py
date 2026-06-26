@@ -15,18 +15,90 @@ Added endpoints:
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import joblib
 import numpy as np
 import pandas as pd
 import os
 import json
 import pathlib
+import shutil
 import requests as req
+from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)
+
+# ── Security: lock CORS to your frontend domain only ─────────────────────────
+# Replace with your actual deployed frontend URL e.g. "https://spintel.vercel.app"
+# FIND this:
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
+# REPLACE with:
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*")
+CORS(app, origins="*")
+
+# ── Security: limit request body size to 1MB ─────────────────────────────────
+app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # 1 MB
+
+# ── Security: rate limiting ───────────────────────────────────────────────────
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per hour", "50 per minute"],
+    storage_uri="memory://",
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ── CSV Backup: protect your data files ───────────────────────────────────────
+BACKUP_DIR = os.path.join(BASE_DIR, "backups")
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+PROTECTED_CSVS = [
+    "batter_features.csv",
+    "2026_players_details.csv",
+    "batter_vs_spin_stats.csv",
+    "venue_features.csv",
+    "form_features.csv",
+    "batter_spin_features.csv",
+    "bowler_spin_stats.csv",
+    "cricsheet_balls_parsed.csv",
+    "Ball_By_Ball_Match_Data.csv",
+    "validation_batter_overall.csv",
+    "validation_batter_match.csv",
+]
+
+def backup_csvs():
+    """Create a timestamped backup of all CSV files on startup."""
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backed_up = []
+    for fname in PROTECTED_CSVS:
+        src = os.path.join(BASE_DIR, fname)
+        if os.path.exists(src):
+            dst = os.path.join(BACKUP_DIR, f"{stamp}_{fname}")
+            shutil.copy2(src, dst)
+            backed_up.append(fname)
+    if backed_up:
+        print(f"  Backed up {len(backed_up)} CSVs → backups/{stamp}_*")
+    # Keep only last 5 backups per file to avoid disk bloat
+    _prune_backups()
+
+def _prune_backups(keep=5):
+    """Delete old backups, keeping only the most recent `keep` per file."""
+    for fname in PROTECTED_CSVS:
+        pattern = f"_{ fname}"
+        matches = sorted([
+            f for f in os.listdir(BACKUP_DIR) if f.endswith(pattern)
+        ])
+        for old in matches[:-keep]:
+            try:
+                os.remove(os.path.join(BACKUP_DIR, old))
+            except Exception:
+                pass
+
+print("Backing up CSVs...")
+backup_csvs()
 
 # ── Load PKL models ───────────────────────────────────────────────────────────
 def load_pkl(filename):
@@ -267,7 +339,56 @@ def _save_preds(preds):
 
 print("CSVs loaded. Server ready.")
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Input validation helpers ──────────────────────────────────────────────────
+VALID_SPIN_TYPES = {
+    "right-arm offbreak", "slow left-arm orthodox",
+    "legbreak", "legbreak googly", "left-arm wrist-spin",
+}
+VALID_PHASES = {"Powerplay", "Middle", "Death", "powerplay", "middle", "death"}
+
+def _validate_predict_input(data):
+    """Returns (cleaned_data, error_string). error_string is None if valid."""
+    try:
+        player_id = int(data.get("player_id", 0))
+    except (TypeError, ValueError):
+        return None, "player_id must be an integer"
+    if player_id <= 0:
+        return None, "player_id must be a positive integer"
+
+    spin_type = str(data.get("spin_type", "right-arm offbreak")).strip()
+    if spin_type not in VALID_SPIN_TYPES:
+        return None, f"spin_type must be one of: {sorted(VALID_SPIN_TYPES)}"
+
+    phase = str(data.get("phase", "Middle")).strip()
+    if phase not in VALID_PHASES:
+        return None, f"phase must be one of: Powerplay, Middle, Death"
+
+    venue = str(data.get("venue", ""))[:100]  # cap length
+
+    try:
+        innings = int(data.get("innings", 1))
+        if innings not in (1, 2):
+            return None, "innings must be 1 or 2"
+    except (TypeError, ValueError):
+        return None, "innings must be 1 or 2"
+
+    try:
+        n_balls = int(data.get("n_balls", 12))
+        if not (1 <= n_balls <= 120):
+            return None, "n_balls must be between 1 and 120"
+    except (TypeError, ValueError):
+        return None, "n_balls must be an integer"
+
+    return {
+        "player_id": player_id,
+        "spin_type": spin_type,
+        "phase":     phase,
+        "venue":     venue,
+        "innings":   innings,
+        "n_balls":   n_balls,
+    }, None
+
+
 def get_batter_name(player_id: int):
     row = players_df[players_df["ID"] == player_id]
     if row.empty:
@@ -591,6 +712,7 @@ def player_venues(player_id):
 
 # ── GET /player-stats/<player_id> ─────────────────────────────────────────────
 @app.route("/player-stats/<int:player_id>", methods=["GET"])
+@limiter.limit("60 per minute")
 def player_stats(player_id):
     # Read filter params from query string
     filter_season   = request.args.get("season",   None)   # e.g. "2023"
@@ -873,14 +995,22 @@ def player_stats(player_id):
 
 # ── POST /predict ─────────────────────────────────────────────────────────────
 @app.route("/predict", methods=["POST"])
+@limiter.limit("30 per minute")
 def predict():
-    data      = request.get_json(force=True)
-    player_id = int(data.get("player_id", 0))
-    spin_type = data.get("spin_type", "right-arm offbreak")
-    phase     = data.get("phase", "Middle")
-    venue     = data.get("venue", "")
-    innings   = int(data.get("innings", 1))
-    n_balls   = int(data.get("n_balls", 12))
+    raw   = request.get_json(force=True, silent=True)
+    if not raw:
+        return jsonify({"error": "Invalid JSON body"}), 400
+
+    data, err = _validate_predict_input(raw)
+    if err:
+        return jsonify({"error": err}), 400
+
+    player_id = data["player_id"]
+    spin_type = data["spin_type"]
+    phase     = data["phase"]
+    venue     = data["venue"]
+    innings   = data["innings"]
+    n_balls   = data["n_balls"]
 
     batter_name = get_batter_name(player_id)
     if not batter_name:
@@ -1131,6 +1261,22 @@ def ai_insight():
         return jsonify({"error": str(e)}), 500
 
 
+# ── Global error handlers ─────────────────────────────────────────────────────
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({"error": "Request too large (max 1MB)"}), 413
+
+@app.errorhandler(429)
+def rate_limited(e):
+    return jsonify({"error": "Too many requests — slow down"}), 429
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({"error": "Internal server error"}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+# For local dev only. In production, run with:
+#   gunicorn -w 2 -b 0.0.0.0:5000 app:app
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, port=5000, threaded=True)
+    app.run(debug=False, port=5000, threaded=True)

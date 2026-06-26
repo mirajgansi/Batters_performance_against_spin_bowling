@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_version": "1.0.0",
+    "data_version": "1.2.0",
     "created": "2019-04-15",
     "revision": 2
   },
@@ -120,6 +120,7 @@
           "over": 0,
           "deliveries": [
             {
+              "actual_delivery": "0.1",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -130,6 +131,7 @@
               }
             },
             {
+              "actual_delivery": "0.2",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -140,6 +142,7 @@
               }
             },
             {
+              "actual_delivery": "0.3",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -150,6 +153,7 @@
               }
             },
             {
+              "actual_delivery": "0.4",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -160,6 +164,7 @@
               }
             },
             {
+              "actual_delivery": "0.5",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "extras": {
@@ -173,6 +178,7 @@
               }
             },
             {
+              "actual_delivery": "0.6",
               "batter": "RG Sharma",
               "bowler": "DL Chahar",
               "non_striker": "Q de Kock",
@@ -188,6 +194,7 @@
           "over": 1,
           "deliveries": [
             {
+              "actual_delivery": "1.1",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "Q de Kock",
@@ -198,6 +205,7 @@
               }
             },
             {
+              "actual_delivery": "1.2",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "Q de Kock",
@@ -208,6 +216,7 @@
               }
             },
             {
+              "actual_delivery": "1.3",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "Q de Kock",
@@ -218,6 +227,7 @@
               }
             },
             {
+              "actual_delivery": "1.4",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "Q de Kock",
@@ -228,6 +238,7 @@
               }
             },
             {
+              "actual_delivery": "1.5",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "Q de Kock",
@@ -238,6 +249,7 @@
               }
             },
             {
+              "actual_delivery": "1.6",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "Q de Kock",
@@ -253,6 +265,7 @@
           "over": 2,
           "deliveries": [
             {
+              "actual_delivery": "2.1",
               "batter": "RG Sharma",
               "bowler": "DL Chahar",
               "non_striker": "Q de Kock",
@@ -263,6 +276,7 @@
               }
             },
             {
+              "actual_delivery": "2.2",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -273,6 +287,7 @@
               }
             },
             {
+              "actual_delivery": "2.3",
               "batter": "Q de Kock",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -294,6 +309,7 @@
               ]
             },
             {
+              "actual_delivery": "2.4",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -304,6 +320,7 @@
               }
             },
             {
+              "actual_delivery": "2.5",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -314,6 +331,7 @@
               }
             },
             {
+              "actual_delivery": "2.6",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -329,6 +347,7 @@
           "over": 3,
           "deliveries": [
             {
+              "actual_delivery": "3.1",
               "batter": "SA Yadav",
               "bowler": "SN Thakur",
               "non_striker": "RG Sharma",
@@ -339,6 +358,7 @@
               }
             },
             {
+              "actual_delivery": "3.2",
               "batter": "SA Yadav",
               "bowler": "SN Thakur",
               "non_striker": "RG Sharma",
@@ -349,6 +369,7 @@
               }
             },
             {
+              "actual_delivery": "3.3",
               "batter": "SA Yadav",
               "bowler": "SN Thakur",
               "non_striker": "RG Sharma",
@@ -359,6 +380,7 @@
               }
             },
             {
+              "actual_delivery": "3.4",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "SA Yadav",
@@ -369,6 +391,7 @@
               }
             },
             {
+              "actual_delivery": "3.5",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "extras": {
@@ -382,6 +405,7 @@
               }
             },
             {
+              "actual_delivery": "3.5",
               "batter": "RG Sharma",
               "bowler": "SN Thakur",
               "non_striker": "SA Yadav",
@@ -392,6 +416,7 @@
               }
             },
             {
+              "actual_delivery": "3.6",
               "batter": "SA Yadav",
               "bowler": "SN Thakur",
               "non_striker": "RG Sharma",
@@ -407,6 +432,7 @@
           "over": 4,
           "deliveries": [
             {
+              "actual_delivery": "4.1",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -417,6 +443,7 @@
               }
             },
             {
+              "actual_delivery": "4.2",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -427,6 +454,7 @@
               }
             },
             {
+              "actual_delivery": "4.3",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -437,6 +465,7 @@
               }
             },
             {
+              "actual_delivery": "4.4",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -447,6 +476,7 @@
               }
             },
             {
+              "actual_delivery": "4.5",
               "batter": "SA Yadav",
               "bowler": "DL Chahar",
               "non_striker": "RG Sharma",
@@ -457,6 +487,7 @@
               }
             },
             {
+              "actual_delivery": "4.6",
               "batter": "RG Sharma",
               "bowler": "DL Chahar",
               "non_striker": "SA Yadav",
@@ -472,6 +503,7 @@
           "over": 5,
           "deliveries": [
             {
+              "actual_delivery": "5.1",
               "batter": "RG Sharma",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -482,6 +514,7 @@
               }
             },
             {
+              "actual_delivery": "5.2",
               "batter": "RG Sharma",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -492,6 +525,7 @@
               }
             },
             {
+              "actual_delivery": "5.3",
               "batter": "RG Sharma",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -502,6 +536,7 @@
               }
             },
             {
+              "actual_delivery": "5.4",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "RG Sharma",
@@ -512,6 +547,7 @@
               }
             },
             {
+              "actual_delivery": "5.5",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "RG Sharma",
@@ -522,6 +558,7 @@
               }
             },
             {
+              "actual_delivery": "5.6",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "RG Sharma",
@@ -537,6 +574,7 @@
           "over": 6,
           "deliveries": [
             {
+              "actual_delivery": "6.1",
               "batter": "RG Sharma",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -547,6 +585,7 @@
               }
             },
             {
+              "actual_delivery": "6.2",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "RG Sharma",
@@ -557,6 +596,7 @@
               }
             },
             {
+              "actual_delivery": "6.3",
               "batter": "RG Sharma",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -567,6 +607,7 @@
               }
             },
             {
+              "actual_delivery": "6.4",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "RG Sharma",
@@ -577,6 +618,7 @@
               }
             },
             {
+              "actual_delivery": "6.5",
               "batter": "RG Sharma",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -587,6 +629,7 @@
               }
             },
             {
+              "actual_delivery": "6.6",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "RG Sharma",
@@ -602,6 +645,7 @@
           "over": 7,
           "deliveries": [
             {
+              "actual_delivery": "7.1",
               "batter": "RG Sharma",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -623,6 +667,7 @@
               ]
             },
             {
+              "actual_delivery": "7.2",
               "batter": "Yuvraj Singh",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -633,6 +678,7 @@
               }
             },
             {
+              "actual_delivery": "7.3",
               "batter": "SA Yadav",
               "bowler": "RA Jadeja",
               "non_striker": "Yuvraj Singh",
@@ -643,6 +689,7 @@
               }
             },
             {
+              "actual_delivery": "7.4",
               "batter": "SA Yadav",
               "bowler": "RA Jadeja",
               "non_striker": "Yuvraj Singh",
@@ -653,6 +700,7 @@
               }
             },
             {
+              "actual_delivery": "7.5",
               "batter": "Yuvraj Singh",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -663,6 +711,7 @@
               }
             },
             {
+              "actual_delivery": "7.6",
               "batter": "Yuvraj Singh",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -678,6 +727,7 @@
           "over": 8,
           "deliveries": [
             {
+              "actual_delivery": "8.1",
               "batter": "Yuvraj Singh",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -688,6 +738,7 @@
               }
             },
             {
+              "actual_delivery": "8.2",
               "batter": "Yuvraj Singh",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -698,6 +749,7 @@
               }
             },
             {
+              "actual_delivery": "8.3",
               "batter": "Yuvraj Singh",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -719,6 +771,7 @@
               ]
             },
             {
+              "actual_delivery": "8.4",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -729,6 +782,7 @@
               }
             },
             {
+              "actual_delivery": "8.5",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -739,6 +793,7 @@
               }
             },
             {
+              "actual_delivery": "8.6",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -754,6 +809,7 @@
           "over": 9,
           "deliveries": [
             {
+              "actual_delivery": "9.1",
               "batter": "SA Yadav",
               "bowler": "RA Jadeja",
               "non_striker": "KH Pandya",
@@ -764,6 +820,7 @@
               }
             },
             {
+              "actual_delivery": "9.2",
               "batter": "KH Pandya",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -774,6 +831,7 @@
               }
             },
             {
+              "actual_delivery": "9.3",
               "batter": "KH Pandya",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -784,6 +842,7 @@
               }
             },
             {
+              "actual_delivery": "9.4",
               "batter": "KH Pandya",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -794,6 +853,7 @@
               }
             },
             {
+              "actual_delivery": "9.5",
               "batter": "KH Pandya",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -804,6 +864,7 @@
               }
             },
             {
+              "actual_delivery": "9.6",
               "batter": "KH Pandya",
               "bowler": "RA Jadeja",
               "non_striker": "SA Yadav",
@@ -819,6 +880,7 @@
           "over": 10,
           "deliveries": [
             {
+              "actual_delivery": "10.1",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "KH Pandya",
@@ -829,6 +891,7 @@
               }
             },
             {
+              "actual_delivery": "10.2",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "KH Pandya",
@@ -839,6 +902,7 @@
               }
             },
             {
+              "actual_delivery": "10.3",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "KH Pandya",
@@ -849,6 +913,7 @@
               }
             },
             {
+              "actual_delivery": "10.4",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "KH Pandya",
@@ -859,6 +924,7 @@
               }
             },
             {
+              "actual_delivery": "10.5",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -869,6 +935,7 @@
               }
             },
             {
+              "actual_delivery": "10.6",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "KH Pandya",
@@ -884,6 +951,7 @@
           "over": 11,
           "deliveries": [
             {
+              "actual_delivery": "11.1",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "KH Pandya",
@@ -894,6 +962,7 @@
               }
             },
             {
+              "actual_delivery": "11.2",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -904,6 +973,7 @@
               }
             },
             {
+              "actual_delivery": "11.3",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -914,6 +984,7 @@
               }
             },
             {
+              "actual_delivery": "11.4",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -924,6 +995,7 @@
               }
             },
             {
+              "actual_delivery": "11.5",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -934,6 +1006,7 @@
               }
             },
             {
+              "actual_delivery": "11.6",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -949,6 +1022,7 @@
           "over": 12,
           "deliveries": [
             {
+              "actual_delivery": "12.1",
               "batter": "KH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -959,6 +1033,7 @@
               }
             },
             {
+              "actual_delivery": "12.2",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "KH Pandya",
@@ -969,6 +1044,7 @@
               }
             },
             {
+              "actual_delivery": "12.3",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "KH Pandya",
@@ -979,6 +1055,7 @@
               }
             },
             {
+              "actual_delivery": "12.4",
               "batter": "KH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -989,6 +1066,7 @@
               }
             },
             {
+              "actual_delivery": "12.5",
               "batter": "KH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -999,6 +1077,7 @@
               }
             },
             {
+              "actual_delivery": "12.6",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "KH Pandya",
@@ -1014,6 +1093,7 @@
           "over": 13,
           "deliveries": [
             {
+              "actual_delivery": "13.1",
               "batter": "SA Yadav",
               "bowler": "SN Thakur",
               "non_striker": "KH Pandya",
@@ -1024,6 +1104,7 @@
               }
             },
             {
+              "actual_delivery": "13.2",
               "batter": "KH Pandya",
               "bowler": "SN Thakur",
               "non_striker": "SA Yadav",
@@ -1040,6 +1121,7 @@
               }
             },
             {
+              "actual_delivery": "13.3",
               "batter": "KH Pandya",
               "bowler": "SN Thakur",
               "non_striker": "SA Yadav",
@@ -1050,6 +1132,7 @@
               }
             },
             {
+              "actual_delivery": "13.4",
               "batter": "SA Yadav",
               "bowler": "SN Thakur",
               "non_striker": "KH Pandya",
@@ -1060,6 +1143,7 @@
               }
             },
             {
+              "actual_delivery": "13.5",
               "batter": "KH Pandya",
               "bowler": "SN Thakur",
               "non_striker": "SA Yadav",
@@ -1070,6 +1154,7 @@
               }
             },
             {
+              "actual_delivery": "13.6",
               "batter": "KH Pandya",
               "bowler": "SN Thakur",
               "non_striker": "SA Yadav",
@@ -1085,6 +1170,7 @@
           "over": 14,
           "deliveries": [
             {
+              "actual_delivery": "14.1",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -1095,6 +1181,7 @@
               }
             },
             {
+              "actual_delivery": "14.2",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -1105,6 +1192,7 @@
               }
             },
             {
+              "actual_delivery": "14.3",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -1115,6 +1203,7 @@
               }
             },
             {
+              "actual_delivery": "14.4",
               "batter": "SA Yadav",
               "bowler": "Imran Tahir",
               "non_striker": "KH Pandya",
@@ -1125,6 +1214,7 @@
               }
             },
             {
+              "actual_delivery": "14.5",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -1135,6 +1225,7 @@
               }
             },
             {
+              "actual_delivery": "14.6",
               "batter": "KH Pandya",
               "bowler": "Imran Tahir",
               "non_striker": "SA Yadav",
@@ -1150,6 +1241,7 @@
           "over": 15,
           "deliveries": [
             {
+              "actual_delivery": "15.1",
               "batter": "KH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -1160,6 +1252,7 @@
               }
             },
             {
+              "actual_delivery": "15.2",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "KH Pandya",
@@ -1170,6 +1263,7 @@
               }
             },
             {
+              "actual_delivery": "15.3",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "KH Pandya",
@@ -1180,6 +1274,7 @@
               }
             },
             {
+              "actual_delivery": "15.4",
               "batter": "KH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -1190,6 +1285,7 @@
               }
             },
             {
+              "actual_delivery": "15.5",
               "batter": "KH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -1200,6 +1296,7 @@
               }
             },
             {
+              "actual_delivery": "15.6",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "KH Pandya",
@@ -1215,6 +1312,7 @@
           "over": 16,
           "deliveries": [
             {
+              "actual_delivery": "16.1",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "KH Pandya",
@@ -1225,6 +1323,7 @@
               }
             },
             {
+              "actual_delivery": "16.2",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -1235,6 +1334,7 @@
               }
             },
             {
+              "actual_delivery": "16.3",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -1245,6 +1345,7 @@
               }
             },
             {
+              "actual_delivery": "16.4",
               "batter": "KH Pandya",
               "bowler": "MM Sharma",
               "non_striker": "SA Yadav",
@@ -1266,6 +1367,7 @@
               ]
             },
             {
+              "actual_delivery": "16.5",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "HH Pandya",
@@ -1276,6 +1378,7 @@
               }
             },
             {
+              "actual_delivery": "16.6",
               "batter": "SA Yadav",
               "bowler": "MM Sharma",
               "non_striker": "HH Pandya",
@@ -1291,6 +1394,7 @@
           "over": 17,
           "deliveries": [
             {
+              "actual_delivery": "17.1",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "HH Pandya",
@@ -1301,6 +1405,7 @@
               }
             },
             {
+              "actual_delivery": "17.2",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -1311,6 +1416,7 @@
               }
             },
             {
+              "actual_delivery": "17.3",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "SA Yadav",
@@ -1321,6 +1427,7 @@
               }
             },
             {
+              "actual_delivery": "17.4",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "HH Pandya",
@@ -1331,6 +1438,7 @@
               }
             },
             {
+              "actual_delivery": "17.5",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "HH Pandya",
@@ -1341,6 +1449,7 @@
               }
             },
             {
+              "actual_delivery": "17.6",
               "batter": "SA Yadav",
               "bowler": "DJ Bravo",
               "non_striker": "HH Pandya",
@@ -1367,6 +1476,7 @@
           "over": 18,
           "deliveries": [
             {
+              "actual_delivery": "18.1",
               "batter": "HH Pandya",
               "bowler": "SN Thakur",
               "non_striker": "KA Pollard",
@@ -1377,6 +1487,7 @@
               }
             },
             {
+              "actual_delivery": "18.2",
               "batter": "HH Pandya",
               "bowler": "SN Thakur",
               "non_striker": "KA Pollard",
@@ -1387,6 +1498,7 @@
               }
             },
             {
+              "actual_delivery": "18.3",
               "batter": "KA Pollard",
               "bowler": "SN Thakur",
               "extras": {
@@ -1400,6 +1512,7 @@
               }
             },
             {
+              "actual_delivery": "18.3",
               "batter": "KA Pollard",
               "bowler": "SN Thakur",
               "non_striker": "HH Pandya",
@@ -1410,6 +1523,7 @@
               }
             },
             {
+              "actual_delivery": "18.4",
               "batter": "KA Pollard",
               "bowler": "SN Thakur",
               "non_striker": "HH Pandya",
@@ -1420,6 +1534,7 @@
               }
             },
             {
+              "actual_delivery": "18.5",
               "batter": "KA Pollard",
               "bowler": "SN Thakur",
               "extras": {
@@ -1433,6 +1548,7 @@
               }
             },
             {
+              "actual_delivery": "18.5",
               "batter": "KA Pollard",
               "bowler": "SN Thakur",
               "non_striker": "HH Pandya",
@@ -1443,6 +1559,7 @@
               }
             },
             {
+              "actual_delivery": "18.6",
               "batter": "KA Pollard",
               "bowler": "SN Thakur",
               "non_striker": "HH Pandya",
@@ -1458,6 +1575,7 @@
           "over": 19,
           "deliveries": [
             {
+              "actual_delivery": "19.1",
               "batter": "KA Pollard",
               "bowler": "DJ Bravo",
               "non_striker": "HH Pandya",
@@ -1468,6 +1586,7 @@
               }
             },
             {
+              "actual_delivery": "19.2",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "extras": {
@@ -1481,6 +1600,7 @@
               }
             },
             {
+              "actual_delivery": "19.2",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "KA Pollard",
@@ -1491,6 +1611,7 @@
               }
             },
             {
+              "actual_delivery": "19.3",
               "batter": "KA Pollard",
               "bowler": "DJ Bravo",
               "extras": {
@@ -1504,6 +1625,7 @@
               }
             },
             {
+              "actual_delivery": "19.3",
               "batter": "KA Pollard",
               "bowler": "DJ Bravo",
               "non_striker": "HH Pandya",
@@ -1514,6 +1636,7 @@
               }
             },
             {
+              "actual_delivery": "19.4",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "KA Pollard",
@@ -1524,6 +1647,7 @@
               }
             },
             {
+              "actual_delivery": "19.5",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "KA Pollard",
@@ -1534,6 +1658,7 @@
               }
             },
             {
+              "actual_delivery": "19.6",
               "batter": "HH Pandya",
               "bowler": "DJ Bravo",
               "non_striker": "KA Pollard",
@@ -1561,6 +1686,7 @@
           "over": 0,
           "deliveries": [
             {
+              "actual_delivery": "0.1",
               "batter": "SR Watson",
               "bowler": "JP Behrendorff",
               "non_striker": "AT Rayudu",
@@ -1571,6 +1697,7 @@
               }
             },
             {
+              "actual_delivery": "0.2",
               "batter": "SR Watson",
               "bowler": "JP Behrendorff",
               "non_striker": "AT Rayudu",
@@ -1581,6 +1708,7 @@
               }
             },
             {
+              "actual_delivery": "0.3",
               "batter": "SR Watson",
               "bowler": "JP Behrendorff",
               "non_striker": "AT Rayudu",
@@ -1591,6 +1719,7 @@
               }
             },
             {
+              "actual_delivery": "0.4",
               "batter": "AT Rayudu",
               "bowler": "JP Behrendorff",
               "non_striker": "SR Watson",
@@ -1612,6 +1741,7 @@
               ]
             },
             {
+              "actual_delivery": "0.5",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "SR Watson",
@@ -1622,6 +1752,7 @@
               }
             },
             {
+              "actual_delivery": "0.6",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "SR Watson",
@@ -1637,6 +1768,7 @@
           "over": 1,
           "deliveries": [
             {
+              "actual_delivery": "1.1",
               "batter": "SR Watson",
               "bowler": "SL Malinga",
               "extras": {
@@ -1650,6 +1782,7 @@
               }
             },
             {
+              "actual_delivery": "1.1",
               "batter": "SR Watson",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1660,6 +1793,7 @@
               }
             },
             {
+              "actual_delivery": "1.2",
               "batter": "SR Watson",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1681,6 +1815,7 @@
               ]
             },
             {
+              "actual_delivery": "1.3",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1691,6 +1826,7 @@
               }
             },
             {
+              "actual_delivery": "1.4",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1701,6 +1837,7 @@
               }
             },
             {
+              "actual_delivery": "1.5",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1711,6 +1848,7 @@
               }
             },
             {
+              "actual_delivery": "1.6",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1726,6 +1864,7 @@
           "over": 2,
           "deliveries": [
             {
+              "actual_delivery": "2.1",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1736,6 +1875,7 @@
               }
             },
             {
+              "actual_delivery": "2.2",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "extras": {
@@ -1749,6 +1889,7 @@
               }
             },
             {
+              "actual_delivery": "2.2",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1759,6 +1900,7 @@
               }
             },
             {
+              "actual_delivery": "2.3",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1769,6 +1911,7 @@
               }
             },
             {
+              "actual_delivery": "2.4",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1779,6 +1922,7 @@
               }
             },
             {
+              "actual_delivery": "2.5",
               "batter": "KM Jadhav",
               "bowler": "JP Behrendorff",
               "non_striker": "SK Raina",
@@ -1789,6 +1933,7 @@
               }
             },
             {
+              "actual_delivery": "2.6",
               "batter": "KM Jadhav",
               "bowler": "JP Behrendorff",
               "non_striker": "SK Raina",
@@ -1804,6 +1949,7 @@
           "over": 3,
           "deliveries": [
             {
+              "actual_delivery": "3.1",
               "batter": "SK Raina",
               "bowler": "SL Malinga",
               "non_striker": "KM Jadhav",
@@ -1814,6 +1960,7 @@
               }
             },
             {
+              "actual_delivery": "3.2",
               "batter": "SK Raina",
               "bowler": "SL Malinga",
               "non_striker": "KM Jadhav",
@@ -1824,6 +1971,7 @@
               }
             },
             {
+              "actual_delivery": "3.3",
               "batter": "SK Raina",
               "bowler": "SL Malinga",
               "non_striker": "KM Jadhav",
@@ -1834,6 +1982,7 @@
               }
             },
             {
+              "actual_delivery": "3.4",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1844,6 +1993,7 @@
               }
             },
             {
+              "actual_delivery": "3.5",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1854,6 +2004,7 @@
               }
             },
             {
+              "actual_delivery": "3.6",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "SK Raina",
@@ -1869,6 +2020,7 @@
           "over": 4,
           "deliveries": [
             {
+              "actual_delivery": "4.1",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1879,6 +2031,7 @@
               }
             },
             {
+              "actual_delivery": "4.2",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1889,6 +2042,7 @@
               }
             },
             {
+              "actual_delivery": "4.3",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1899,6 +2053,7 @@
               }
             },
             {
+              "actual_delivery": "4.4",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1909,6 +2064,7 @@
               }
             },
             {
+              "actual_delivery": "4.5",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1919,6 +2075,7 @@
               }
             },
             {
+              "actual_delivery": "4.6",
               "batter": "SK Raina",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -1945,6 +2102,7 @@
           "over": 5,
           "deliveries": [
             {
+              "actual_delivery": "5.1",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -1955,6 +2113,7 @@
               }
             },
             {
+              "actual_delivery": "5.2",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -1965,6 +2124,7 @@
               }
             },
             {
+              "actual_delivery": "5.3",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -1975,6 +2135,7 @@
               }
             },
             {
+              "actual_delivery": "5.4",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -1985,6 +2146,7 @@
               }
             },
             {
+              "actual_delivery": "5.5",
               "batter": "MS Dhoni",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -1995,6 +2157,7 @@
               }
             },
             {
+              "actual_delivery": "5.6",
               "batter": "MS Dhoni",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2010,6 +2173,7 @@
           "over": 6,
           "deliveries": [
             {
+              "actual_delivery": "6.1",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2020,6 +2184,7 @@
               }
             },
             {
+              "actual_delivery": "6.2",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2030,6 +2195,7 @@
               }
             },
             {
+              "actual_delivery": "6.3",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "extras": {
@@ -2043,6 +2209,7 @@
               }
             },
             {
+              "actual_delivery": "6.3",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2053,6 +2220,7 @@
               }
             },
             {
+              "actual_delivery": "6.4",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2063,6 +2231,7 @@
               }
             },
             {
+              "actual_delivery": "6.5",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2073,6 +2242,7 @@
               }
             },
             {
+              "actual_delivery": "6.6",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2088,6 +2258,7 @@
           "over": 7,
           "deliveries": [
             {
+              "actual_delivery": "7.1",
               "batter": "MS Dhoni",
               "bowler": "RD Chahar",
               "non_striker": "KM Jadhav",
@@ -2098,6 +2269,7 @@
               }
             },
             {
+              "actual_delivery": "7.2",
               "batter": "MS Dhoni",
               "bowler": "RD Chahar",
               "non_striker": "KM Jadhav",
@@ -2108,6 +2280,7 @@
               }
             },
             {
+              "actual_delivery": "7.3",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "extras": {
@@ -2121,6 +2294,7 @@
               }
             },
             {
+              "actual_delivery": "7.3",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2131,6 +2305,7 @@
               }
             },
             {
+              "actual_delivery": "7.4",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2141,6 +2316,7 @@
               }
             },
             {
+              "actual_delivery": "7.5",
               "batter": "MS Dhoni",
               "bowler": "RD Chahar",
               "non_striker": "KM Jadhav",
@@ -2151,6 +2327,7 @@
               }
             },
             {
+              "actual_delivery": "7.6",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2166,6 +2343,7 @@
           "over": 8,
           "deliveries": [
             {
+              "actual_delivery": "8.1",
               "batter": "MS Dhoni",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -2176,6 +2354,7 @@
               }
             },
             {
+              "actual_delivery": "8.2",
               "batter": "MS Dhoni",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -2186,6 +2365,7 @@
               }
             },
             {
+              "actual_delivery": "8.3",
               "batter": "KM Jadhav",
               "bowler": "JP Behrendorff",
               "non_striker": "MS Dhoni",
@@ -2196,6 +2376,7 @@
               }
             },
             {
+              "actual_delivery": "8.4",
               "batter": "MS Dhoni",
               "bowler": "JP Behrendorff",
               "non_striker": "KM Jadhav",
@@ -2206,6 +2387,7 @@
               }
             },
             {
+              "actual_delivery": "8.5",
               "batter": "MS Dhoni",
               "bowler": "JP Behrendorff",
               "extras": {
@@ -2219,6 +2401,7 @@
               }
             },
             {
+              "actual_delivery": "8.6",
               "batter": "KM Jadhav",
               "bowler": "JP Behrendorff",
               "non_striker": "MS Dhoni",
@@ -2234,6 +2417,7 @@
           "over": 9,
           "deliveries": [
             {
+              "actual_delivery": "9.1",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2244,6 +2428,7 @@
               }
             },
             {
+              "actual_delivery": "9.2",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2254,6 +2439,7 @@
               }
             },
             {
+              "actual_delivery": "9.3",
               "batter": "MS Dhoni",
               "bowler": "RD Chahar",
               "non_striker": "KM Jadhav",
@@ -2264,6 +2450,7 @@
               }
             },
             {
+              "actual_delivery": "9.4",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2274,6 +2461,7 @@
               }
             },
             {
+              "actual_delivery": "9.5",
               "batter": "KM Jadhav",
               "bowler": "RD Chahar",
               "non_striker": "MS Dhoni",
@@ -2284,6 +2472,7 @@
               }
             },
             {
+              "actual_delivery": "9.6",
               "batter": "MS Dhoni",
               "bowler": "RD Chahar",
               "non_striker": "KM Jadhav",
@@ -2299,6 +2488,7 @@
           "over": 10,
           "deliveries": [
             {
+              "actual_delivery": "10.1",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -2309,6 +2499,7 @@
               }
             },
             {
+              "actual_delivery": "10.2",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -2319,6 +2510,7 @@
               }
             },
             {
+              "actual_delivery": "10.3",
               "batter": "MS Dhoni",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2329,6 +2521,7 @@
               }
             },
             {
+              "actual_delivery": "10.4",
               "batter": "MS Dhoni",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2339,6 +2532,7 @@
               }
             },
             {
+              "actual_delivery": "10.5",
               "batter": "MS Dhoni",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2349,6 +2543,7 @@
               }
             },
             {
+              "actual_delivery": "10.6",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "MS Dhoni",
@@ -2364,6 +2559,7 @@
           "over": 11,
           "deliveries": [
             {
+              "actual_delivery": "11.1",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2374,6 +2570,7 @@
               }
             },
             {
+              "actual_delivery": "11.2",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2384,6 +2581,7 @@
               }
             },
             {
+              "actual_delivery": "11.3",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "extras": {
@@ -2397,6 +2595,7 @@
               }
             },
             {
+              "actual_delivery": "11.4",
               "batter": "MS Dhoni",
               "bowler": "KH Pandya",
               "extras": {
@@ -2410,6 +2609,7 @@
               }
             },
             {
+              "actual_delivery": "11.4",
               "batter": "MS Dhoni",
               "bowler": "KH Pandya",
               "non_striker": "KM Jadhav",
@@ -2420,6 +2620,7 @@
               }
             },
             {
+              "actual_delivery": "11.5",
               "batter": "MS Dhoni",
               "bowler": "KH Pandya",
               "non_striker": "KM Jadhav",
@@ -2430,6 +2631,7 @@
               }
             },
             {
+              "actual_delivery": "11.6",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2445,6 +2647,7 @@
           "over": 12,
           "deliveries": [
             {
+              "actual_delivery": "12.1",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2455,6 +2658,7 @@
               }
             },
             {
+              "actual_delivery": "12.2",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2465,6 +2669,7 @@
               }
             },
             {
+              "actual_delivery": "12.3",
               "batter": "MS Dhoni",
               "bowler": "JJ Bumrah",
               "non_striker": "KM Jadhav",
@@ -2475,6 +2680,7 @@
               }
             },
             {
+              "actual_delivery": "12.4",
               "batter": "MS Dhoni",
               "bowler": "JJ Bumrah",
               "non_striker": "KM Jadhav",
@@ -2485,6 +2691,7 @@
               }
             },
             {
+              "actual_delivery": "12.5",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "MS Dhoni",
@@ -2495,6 +2702,7 @@
               }
             },
             {
+              "actual_delivery": "12.6",
               "batter": "MS Dhoni",
               "bowler": "JJ Bumrah",
               "non_striker": "KM Jadhav",
@@ -2510,6 +2718,7 @@
           "over": 13,
           "deliveries": [
             {
+              "actual_delivery": "13.1",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2520,6 +2729,7 @@
               }
             },
             {
+              "actual_delivery": "13.2",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "extras": {
@@ -2533,6 +2743,7 @@
               }
             },
             {
+              "actual_delivery": "13.2",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2543,6 +2754,7 @@
               }
             },
             {
+              "actual_delivery": "13.3",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2553,6 +2765,7 @@
               }
             },
             {
+              "actual_delivery": "13.4",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2563,6 +2776,7 @@
               }
             },
             {
+              "actual_delivery": "13.5",
               "batter": "KM Jadhav",
               "bowler": "KH Pandya",
               "non_striker": "MS Dhoni",
@@ -2573,6 +2787,7 @@
               }
             },
             {
+              "actual_delivery": "13.6",
               "batter": "MS Dhoni",
               "bowler": "KH Pandya",
               "non_striker": "KM Jadhav",
@@ -2588,6 +2803,7 @@
           "over": 14,
           "deliveries": [
             {
+              "actual_delivery": "14.1",
               "batter": "MS Dhoni",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2609,6 +2825,7 @@
               ]
             },
             {
+              "actual_delivery": "14.2",
               "batter": "RA Jadeja",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2619,6 +2836,7 @@
               }
             },
             {
+              "actual_delivery": "14.3",
               "batter": "KM Jadhav",
               "bowler": "HH Pandya",
               "non_striker": "RA Jadeja",
@@ -2629,6 +2847,7 @@
               }
             },
             {
+              "actual_delivery": "14.4",
               "batter": "RA Jadeja",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2650,6 +2869,7 @@
               ]
             },
             {
+              "actual_delivery": "14.5",
               "batter": "DJ Bravo",
               "bowler": "HH Pandya",
               "non_striker": "KM Jadhav",
@@ -2660,6 +2880,7 @@
               }
             },
             {
+              "actual_delivery": "14.6",
               "batter": "DJ Bravo",
               "bowler": "HH Pandya",
               "extras": {
@@ -2673,6 +2894,7 @@
               }
             },
             {
+              "actual_delivery": "14.6",
               "batter": "DJ Bravo",
               "bowler": "HH Pandya",
               "extras": {
@@ -2691,6 +2913,7 @@
           "over": 15,
           "deliveries": [
             {
+              "actual_delivery": "15.1",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "DJ Bravo",
@@ -2701,6 +2924,7 @@
               }
             },
             {
+              "actual_delivery": "15.2",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "DJ Bravo",
@@ -2711,6 +2935,7 @@
               }
             },
             {
+              "actual_delivery": "15.3",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "DJ Bravo",
@@ -2721,6 +2946,7 @@
               }
             },
             {
+              "actual_delivery": "15.4",
               "batter": "DJ Bravo",
               "bowler": "SL Malinga",
               "non_striker": "KM Jadhav",
@@ -2731,6 +2957,7 @@
               }
             },
             {
+              "actual_delivery": "15.5",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "DJ Bravo",
@@ -2741,6 +2968,7 @@
               }
             },
             {
+              "actual_delivery": "15.6",
               "batter": "DJ Bravo",
               "bowler": "SL Malinga",
               "non_striker": "KM Jadhav",
@@ -2756,6 +2984,7 @@
           "over": 16,
           "deliveries": [
             {
+              "actual_delivery": "16.1",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "DJ Bravo",
@@ -2766,6 +2995,7 @@
               }
             },
             {
+              "actual_delivery": "16.2",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "DJ Bravo",
@@ -2776,6 +3006,7 @@
               }
             },
             {
+              "actual_delivery": "16.3",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "non_striker": "DJ Bravo",
@@ -2786,6 +3017,7 @@
               }
             },
             {
+              "actual_delivery": "16.4",
               "batter": "DJ Bravo",
               "bowler": "JJ Bumrah",
               "non_striker": "KM Jadhav",
@@ -2796,6 +3028,7 @@
               }
             },
             {
+              "actual_delivery": "16.5",
               "batter": "DJ Bravo",
               "bowler": "JJ Bumrah",
               "non_striker": "KM Jadhav",
@@ -2806,6 +3039,7 @@
               }
             },
             {
+              "actual_delivery": "16.6",
               "batter": "KM Jadhav",
               "bowler": "JJ Bumrah",
               "extras": {
@@ -2824,6 +3058,7 @@
           "over": 17,
           "deliveries": [
             {
+              "actual_delivery": "17.1",
               "batter": "KM Jadhav",
               "bowler": "SL Malinga",
               "non_striker": "DJ Bravo",
@@ -2845,6 +3080,7 @@
               ]
             },
             {
+              "actual_delivery": "17.2",
               "batter": "DL Chahar",
               "bowler": "SL Malinga",
               "non_striker": "DJ Bravo",
@@ -2855,6 +3091,7 @@
               }
             },
             {
+              "actual_delivery": "17.3",
               "batter": "DJ Bravo",
               "bowler": "SL Malinga",
               "non_striker": "DL Chahar",
@@ -2865,6 +3102,7 @@
               }
             },
             {
+              "actual_delivery": "17.4",
               "batter": "DJ Bravo",
               "bowler": "SL Malinga",
               "non_striker": "DL Chahar",
@@ -2875,6 +3113,7 @@
               }
             },
             {
+              "actual_delivery": "17.5",
               "batter": "DJ Bravo",
               "bowler": "SL Malinga",
               "non_striker": "DL Chahar",
@@ -2896,6 +3135,7 @@
               ]
             },
             {
+              "actual_delivery": "17.6",
               "batter": "SN Thakur",
               "bowler": "SL Malinga",
               "non_striker": "DL Chahar",
@@ -2911,6 +3151,7 @@
           "over": 18,
           "deliveries": [
             {
+              "actual_delivery": "18.1",
               "batter": "DL Chahar",
               "bowler": "JJ Bumrah",
               "non_striker": "SN Thakur",
@@ -2921,6 +3162,7 @@
               }
             },
             {
+              "actual_delivery": "18.2",
               "batter": "SN Thakur",
               "bowler": "JJ Bumrah",
               "non_striker": "DL Chahar",
@@ -2931,6 +3173,7 @@
               }
             },
             {
+              "actual_delivery": "18.3",
               "batter": "DL Chahar",
               "bowler": "JJ Bumrah",
               "non_striker": "SN Thakur",
@@ -2941,6 +3184,7 @@
               }
             },
             {
+              "actual_delivery": "18.4",
               "batter": "DL Chahar",
               "bowler": "JJ Bumrah",
               "non_striker": "SN Thakur",
@@ -2951,6 +3195,7 @@
               }
             },
             {
+              "actual_delivery": "18.5",
               "batter": "DL Chahar",
               "bowler": "JJ Bumrah",
               "non_striker": "SN Thakur",
@@ -2961,6 +3206,7 @@
               }
             },
             {
+              "actual_delivery": "18.6",
               "batter": "DL Chahar",
               "bowler": "JJ Bumrah",
               "non_striker": "SN Thakur",
@@ -2976,6 +3222,7 @@
           "over": 19,
           "deliveries": [
             {
+              "actual_delivery": "19.1",
               "batter": "DL Chahar",
               "bowler": "HH Pandya",
               "non_striker": "SN Thakur",
@@ -2997,6 +3244,7 @@
               ]
             },
             {
+              "actual_delivery": "19.2",
               "batter": "SN Thakur",
               "bowler": "HH Pandya",
               "non_striker": "MM Sharma",
@@ -3007,6 +3255,7 @@
               }
             },
             {
+              "actual_delivery": "19.3",
               "batter": "SN Thakur",
               "bowler": "HH Pandya",
               "non_striker": "MM Sharma",
@@ -3017,6 +3266,7 @@
               }
             },
             {
+              "actual_delivery": "19.4",
               "batter": "SN Thakur",
               "bowler": "HH Pandya",
               "non_striker": "MM Sharma",
@@ -3027,6 +3277,7 @@
               }
             },
             {
+              "actual_delivery": "19.5",
               "batter": "MM Sharma",
               "bowler": "HH Pandya",
               "non_striker": "SN Thakur",
@@ -3037,6 +3288,7 @@
               }
             },
             {
+              "actual_delivery": "19.6",
               "batter": "MM Sharma",
               "bowler": "HH Pandya",
               "non_striker": "SN Thakur",

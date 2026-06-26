@@ -1,15 +1,15 @@
 This zip archive contains data files from Cricsheet in JSON format. This
-archive contains 1209 Indian Premier League matches.
+archive contains 1243 Indian Premier League matches.
 
 
-The JSON data files contained in this zip file are version 1.0.0, and 1.1.0
-files. You can learn about the structure of these files at
+The JSON data files contained in this zip file are version 1.2.0 files. You
+can learn about the structure of these files at
 https://cricsheet.org/format/json/
 
 
 You can find the available downloads at https://cricsheet.org/downloads/, and
 you can find the most up-to-date version of this zip file at
-https://cricsheet.org/downloads/ipl_json.zip
+https://cricsheet.org/downloads/ipl_male_json.zip
 
 
 The matches contained in this zip archive are listed below. The first field is
@@ -22,6 +22,40 @@ as IPL). The 4th field is the gender of the players involved in the match. The
 teams involved in the match.
 
 
+2026-05-31 - club - IPL - male - 1535465 - Gujarat Titans vs Royal Challengers Bengaluru
+2026-05-29 - club - IPL - male - 1535464 - Rajasthan Royals vs Gujarat Titans
+2026-05-27 - club - IPL - male - 1535463 - Rajasthan Royals vs Sunrisers Hyderabad
+2026-05-26 - club - IPL - male - 1535462 - Royal Challengers Bengaluru vs Gujarat Titans
+2026-05-24 - club - IPL - male - 1529313 - Delhi Capitals vs Kolkata Knight Riders
+2026-05-24 - club - IPL - male - 1529312 - Rajasthan Royals vs Mumbai Indians
+2026-05-23 - club - IPL - male - 1529311 - Lucknow Super Giants vs Punjab Kings
+2026-05-22 - club - IPL - male - 1529310 - Sunrisers Hyderabad vs Royal Challengers Bengaluru
+2026-05-21 - club - IPL - male - 1529309 - Gujarat Titans vs Chennai Super Kings
+2026-05-20 - club - IPL - male - 1529308 - Mumbai Indians vs Kolkata Knight Riders
+2026-05-19 - club - IPL - male - 1529307 - Lucknow Super Giants vs Rajasthan Royals
+2026-05-18 - club - IPL - male - 1529306 - Chennai Super Kings vs Sunrisers Hyderabad
+2026-05-17 - club - IPL - male - 1529305 - Rajasthan Royals vs Delhi Capitals
+2026-05-17 - club - IPL - male - 1529304 - Royal Challengers Bengaluru vs Punjab Kings
+2026-05-16 - club - IPL - male - 1529303 - Kolkata Knight Riders vs Gujarat Titans
+2026-05-15 - club - IPL - male - 1529302 - Chennai Super Kings vs Lucknow Super Giants
+2026-05-14 - club - IPL - male - 1529301 - Punjab Kings vs Mumbai Indians
+2026-05-13 - club - IPL - male - 1529300 - Kolkata Knight Riders vs Royal Challengers Bengaluru
+2026-05-12 - club - IPL - male - 1529299 - Gujarat Titans vs Sunrisers Hyderabad
+2026-05-11 - club - IPL - male - 1529298 - Punjab Kings vs Delhi Capitals
+2026-05-10 - club - IPL - male - 1529297 - Mumbai Indians vs Royal Challengers Bengaluru
+2026-05-10 - club - IPL - male - 1529296 - Lucknow Super Giants vs Chennai Super Kings
+2026-05-09 - club - IPL - male - 1529295 - Gujarat Titans vs Rajasthan Royals
+2026-05-08 - club - IPL - male - 1529294 - Delhi Capitals vs Kolkata Knight Riders
+2026-05-07 - club - IPL - male - 1529293 - Lucknow Super Giants vs Royal Challengers Bengaluru
+2026-05-06 - club - IPL - male - 1529292 - Sunrisers Hyderabad vs Punjab Kings
+2026-05-05 - club - IPL - male - 1529291 - Delhi Capitals vs Chennai Super Kings
+2026-05-04 - club - IPL - male - 1529290 - Lucknow Super Giants vs Mumbai Indians
+2026-05-03 - club - IPL - male - 1529289 - Punjab Kings vs Gujarat Titans
+2026-05-03 - club - IPL - male - 1529288 - Sunrisers Hyderabad vs Kolkata Knight Riders
+2026-05-02 - club - IPL - male - 1529287 - Mumbai Indians vs Chennai Super Kings
+2026-05-01 - club - IPL - male - 1529286 - Rajasthan Royals vs Delhi Capitals
+2026-04-30 - club - IPL - male - 1529285 - Royal Challengers Bengaluru vs Gujarat Titans
+2026-04-29 - club - IPL - male - 1529284 - Mumbai Indians vs Sunrisers Hyderabad
 2026-04-28 - club - IPL - male - 1529283 - Punjab Kings vs Rajasthan Royals
 2026-04-27 - club - IPL - male - 1529282 - Delhi Capitals vs Royal Challengers Bengaluru
 2026-04-26 - club - IPL - male - 1529281 - Kolkata Knight Riders vs Lucknow Super Giants

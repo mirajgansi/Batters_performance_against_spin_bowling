@@ -1372,12 +1372,12 @@ export default function App() {
 
   // Health poll every 10s
   useEffect(() => {
-    const check = async () => {
-      try {
-        const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(2500) });
-        setApiStatus(r.ok ? "connected" : "disconnected");
-      } catch { setApiStatus("disconnected"); }
-    };
+   const check = async () => {
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(2500) });
+    setApiStatus(r.ok ? "connected" : "disconnected");
+  } catch { setApiStatus("disconnected"); }
+};
     check();
     const id = setInterval(check, 10000);
     return () => clearInterval(id);

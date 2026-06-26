@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_version": "1.1.0",
+    "data_version": "1.2.0",
     "created": "2023-04-06",
     "revision": 1
   },
@@ -124,6 +124,7 @@
           "over": 0,
           "deliveries": [
             {
+              "actual_delivery": "0.1",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "extras": {
@@ -137,6 +138,7 @@
               }
             },
             {
+              "actual_delivery": "0.1",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "PP Shaw",
@@ -147,6 +149,7 @@
               }
             },
             {
+              "actual_delivery": "0.2",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "extras": {
@@ -160,6 +163,7 @@
               }
             },
             {
+              "actual_delivery": "0.2",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "PP Shaw",
@@ -170,6 +174,7 @@
               }
             },
             {
+              "actual_delivery": "0.3",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "PP Shaw",
@@ -180,6 +185,7 @@
               }
             },
             {
+              "actual_delivery": "0.4",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "PP Shaw",
@@ -190,6 +196,7 @@
               }
             },
             {
+              "actual_delivery": "0.5",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "PP Shaw",
@@ -200,6 +207,7 @@
               }
             },
             {
+              "actual_delivery": "0.6",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "extras": {
@@ -213,6 +221,7 @@
               }
             },
             {
+              "actual_delivery": "0.6",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "PP Shaw",
@@ -228,6 +237,7 @@
           "over": 1,
           "deliveries": [
             {
+              "actual_delivery": "1.1",
               "batter": "PP Shaw",
               "bowler": "J Little",
               "non_striker": "DA Warner",
@@ -238,6 +248,7 @@
               }
             },
             {
+              "actual_delivery": "1.2",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "PP Shaw",
@@ -248,6 +259,7 @@
               }
             },
             {
+              "actual_delivery": "1.3",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "PP Shaw",
@@ -258,6 +270,7 @@
               }
             },
             {
+              "actual_delivery": "1.4",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "PP Shaw",
@@ -268,6 +281,7 @@
               }
             },
             {
+              "actual_delivery": "1.5",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "PP Shaw",
@@ -278,6 +292,7 @@
               }
             },
             {
+              "actual_delivery": "1.6",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "PP Shaw",
@@ -293,6 +308,7 @@
           "over": 2,
           "deliveries": [
             {
+              "actual_delivery": "2.1",
               "batter": "PP Shaw",
               "bowler": "Mohammed Shami",
               "extras": {
@@ -306,6 +322,7 @@
               }
             },
             {
+              "actual_delivery": "2.1",
               "batter": "PP Shaw",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -316,6 +333,7 @@
               }
             },
             {
+              "actual_delivery": "2.2",
               "batter": "PP Shaw",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -326,6 +344,7 @@
               }
             },
             {
+              "actual_delivery": "2.3",
               "batter": "PP Shaw",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -336,6 +355,7 @@
               }
             },
             {
+              "actual_delivery": "2.4",
               "batter": "PP Shaw",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -357,6 +377,7 @@
               ]
             },
             {
+              "actual_delivery": "2.5",
               "batter": "MR Marsh",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -367,6 +388,7 @@
               }
             },
             {
+              "actual_delivery": "2.6",
               "batter": "MR Marsh",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -382,6 +404,7 @@
           "over": 3,
           "deliveries": [
             {
+              "actual_delivery": "3.1",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "MR Marsh",
@@ -392,6 +415,7 @@
               }
             },
             {
+              "actual_delivery": "3.2",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "MR Marsh",
@@ -402,6 +426,7 @@
               }
             },
             {
+              "actual_delivery": "3.3",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "MR Marsh",
@@ -412,6 +437,7 @@
               }
             },
             {
+              "actual_delivery": "3.4",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "MR Marsh",
@@ -422,6 +448,7 @@
               }
             },
             {
+              "actual_delivery": "3.5",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "MR Marsh",
@@ -432,6 +459,7 @@
               }
             },
             {
+              "actual_delivery": "3.6",
               "batter": "DA Warner",
               "bowler": "J Little",
               "non_striker": "MR Marsh",
@@ -447,6 +475,7 @@
           "over": 4,
           "deliveries": [
             {
+              "actual_delivery": "4.1",
               "batter": "MR Marsh",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -457,6 +486,7 @@
               }
             },
             {
+              "actual_delivery": "4.2",
               "batter": "MR Marsh",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -473,6 +503,7 @@
               ]
             },
             {
+              "actual_delivery": "4.3",
               "batter": "SN Khan",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -483,6 +514,7 @@
               }
             },
             {
+              "actual_delivery": "4.4",
               "batter": "SN Khan",
               "bowler": "Mohammed Shami",
               "non_striker": "DA Warner",
@@ -493,6 +525,7 @@
               }
             },
             {
+              "actual_delivery": "4.5",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "SN Khan",
@@ -503,6 +536,7 @@
               }
             },
             {
+              "actual_delivery": "4.6",
               "batter": "DA Warner",
               "bowler": "Mohammed Shami",
               "non_striker": "SN Khan",
@@ -518,6 +552,7 @@
           "over": 5,
           "deliveries": [
             {
+              "actual_delivery": "5.1",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "DA Warner",
@@ -528,6 +563,7 @@
               }
             },
             {
+              "actual_delivery": "5.2",
               "batter": "DA Warner",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -538,6 +574,7 @@
               }
             },
             {
+              "actual_delivery": "5.3",
               "batter": "DA Warner",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -548,6 +585,7 @@
               }
             },
             {
+              "actual_delivery": "5.4",
               "batter": "DA Warner",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -558,6 +596,7 @@
               }
             },
             {
+              "actual_delivery": "5.5",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "DA Warner",
@@ -568,6 +607,7 @@
               }
             },
             {
+              "actual_delivery": "5.6",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "extras": {
@@ -586,6 +626,7 @@
           "over": 6,
           "deliveries": [
             {
+              "actual_delivery": "6.1",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -596,6 +637,7 @@
               }
             },
             {
+              "actual_delivery": "6.2",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -606,6 +648,7 @@
               }
             },
             {
+              "actual_delivery": "6.3",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -616,6 +659,7 @@
               }
             },
             {
+              "actual_delivery": "6.4",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "extras": {
@@ -629,6 +673,7 @@
               }
             },
             {
+              "actual_delivery": "6.4",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -639,6 +684,7 @@
               }
             },
             {
+              "actual_delivery": "6.5",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -649,6 +695,7 @@
               }
             },
             {
+              "actual_delivery": "6.6",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -664,6 +711,7 @@
           "over": 7,
           "deliveries": [
             {
+              "actual_delivery": "7.1",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "DA Warner",
@@ -674,6 +722,7 @@
               }
             },
             {
+              "actual_delivery": "7.2",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "DA Warner",
@@ -684,6 +733,7 @@
               }
             },
             {
+              "actual_delivery": "7.3",
               "batter": "DA Warner",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -694,6 +744,7 @@
               }
             },
             {
+              "actual_delivery": "7.4",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "DA Warner",
@@ -704,6 +755,7 @@
               }
             },
             {
+              "actual_delivery": "7.5",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "DA Warner",
@@ -714,6 +766,7 @@
               }
             },
             {
+              "actual_delivery": "7.6",
               "batter": "DA Warner",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -729,6 +782,7 @@
           "over": 8,
           "deliveries": [
             {
+              "actual_delivery": "8.1",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -739,6 +793,7 @@
               }
             },
             {
+              "actual_delivery": "8.2",
               "batter": "DA Warner",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -755,6 +810,7 @@
               ]
             },
             {
+              "actual_delivery": "8.3",
               "batter": "RR Rossouw",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -776,6 +832,7 @@
               ]
             },
             {
+              "actual_delivery": "8.4",
               "batter": "Abishek Porel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -786,6 +843,7 @@
               }
             },
             {
+              "actual_delivery": "8.5",
               "batter": "SN Khan",
               "bowler": "AS Joseph",
               "non_striker": "Abishek Porel",
@@ -796,6 +854,7 @@
               }
             },
             {
+              "actual_delivery": "8.6",
               "batter": "SN Khan",
               "bowler": "AS Joseph",
               "non_striker": "Abishek Porel",
@@ -811,6 +870,7 @@
           "over": 9,
           "deliveries": [
             {
+              "actual_delivery": "9.1",
               "batter": "Abishek Porel",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -821,6 +881,7 @@
               }
             },
             {
+              "actual_delivery": "9.2",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "Abishek Porel",
@@ -831,6 +892,7 @@
               }
             },
             {
+              "actual_delivery": "9.3",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "Abishek Porel",
@@ -841,6 +903,7 @@
               }
             },
             {
+              "actual_delivery": "9.4",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "Abishek Porel",
@@ -851,6 +914,7 @@
               }
             },
             {
+              "actual_delivery": "9.5",
               "batter": "Abishek Porel",
               "bowler": "HH Pandya",
               "non_striker": "SN Khan",
@@ -861,6 +925,7 @@
               }
             },
             {
+              "actual_delivery": "9.6",
               "batter": "SN Khan",
               "bowler": "HH Pandya",
               "non_striker": "Abishek Porel",
@@ -876,6 +941,7 @@
           "over": 10,
           "deliveries": [
             {
+              "actual_delivery": "10.1",
               "batter": "SN Khan",
               "bowler": "AS Joseph",
               "non_striker": "Abishek Porel",
@@ -886,6 +952,7 @@
               }
             },
             {
+              "actual_delivery": "10.2",
               "batter": "SN Khan",
               "bowler": "AS Joseph",
               "non_striker": "Abishek Porel",
@@ -896,6 +963,7 @@
               }
             },
             {
+              "actual_delivery": "10.3",
               "batter": "Abishek Porel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -906,6 +974,7 @@
               }
             },
             {
+              "actual_delivery": "10.4",
               "batter": "Abishek Porel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -916,6 +985,7 @@
               }
             },
             {
+              "actual_delivery": "10.5",
               "batter": "Abishek Porel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -926,6 +996,7 @@
               }
             },
             {
+              "actual_delivery": "10.6",
               "batter": "Abishek Porel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -941,6 +1012,7 @@
           "over": 11,
           "deliveries": [
             {
+              "actual_delivery": "11.1",
               "batter": "Abishek Porel",
               "bowler": "Yash Dayal",
               "non_striker": "SN Khan",
@@ -951,6 +1023,7 @@
               }
             },
             {
+              "actual_delivery": "11.2",
               "batter": "SN Khan",
               "bowler": "Yash Dayal",
               "non_striker": "Abishek Porel",
@@ -961,6 +1034,7 @@
               }
             },
             {
+              "actual_delivery": "11.3",
               "batter": "SN Khan",
               "bowler": "Yash Dayal",
               "non_striker": "Abishek Porel",
@@ -971,6 +1045,7 @@
               }
             },
             {
+              "actual_delivery": "11.4",
               "batter": "Abishek Porel",
               "bowler": "Yash Dayal",
               "non_striker": "SN Khan",
@@ -981,6 +1056,7 @@
               }
             },
             {
+              "actual_delivery": "11.5",
               "batter": "SN Khan",
               "bowler": "Yash Dayal",
               "non_striker": "Abishek Porel",
@@ -991,6 +1067,7 @@
               }
             },
             {
+              "actual_delivery": "11.6",
               "batter": "Abishek Porel",
               "bowler": "Yash Dayal",
               "non_striker": "SN Khan",
@@ -1006,6 +1083,7 @@
           "over": 12,
           "deliveries": [
             {
+              "actual_delivery": "12.1",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "Abishek Porel",
@@ -1016,6 +1094,7 @@
               }
             },
             {
+              "actual_delivery": "12.2",
               "batter": "Abishek Porel",
               "bowler": "Rashid Khan",
               "non_striker": "SN Khan",
@@ -1032,6 +1111,7 @@
               ]
             },
             {
+              "actual_delivery": "12.3",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "SN Khan",
@@ -1042,6 +1122,7 @@
               }
             },
             {
+              "actual_delivery": "12.4",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "SN Khan",
@@ -1052,6 +1133,7 @@
               }
             },
             {
+              "actual_delivery": "12.5",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "SN Khan",
@@ -1062,6 +1144,7 @@
               }
             },
             {
+              "actual_delivery": "12.6",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1077,6 +1160,7 @@
           "over": 13,
           "deliveries": [
             {
+              "actual_delivery": "13.1",
               "batter": "SN Khan",
               "bowler": "AS Joseph",
               "non_striker": "AR Patel",
@@ -1087,6 +1171,7 @@
               }
             },
             {
+              "actual_delivery": "13.2",
               "batter": "SN Khan",
               "bowler": "AS Joseph",
               "non_striker": "AR Patel",
@@ -1097,6 +1182,7 @@
               }
             },
             {
+              "actual_delivery": "13.3",
               "batter": "AR Patel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -1107,6 +1193,7 @@
               }
             },
             {
+              "actual_delivery": "13.4",
               "batter": "AR Patel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -1117,6 +1204,7 @@
               }
             },
             {
+              "actual_delivery": "13.5",
               "batter": "AR Patel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -1127,6 +1215,7 @@
               }
             },
             {
+              "actual_delivery": "13.6",
               "batter": "AR Patel",
               "bowler": "AS Joseph",
               "non_striker": "SN Khan",
@@ -1142,6 +1231,7 @@
           "over": 14,
           "deliveries": [
             {
+              "actual_delivery": "14.1",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1152,6 +1242,7 @@
               }
             },
             {
+              "actual_delivery": "14.2",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1162,6 +1253,7 @@
               }
             },
             {
+              "actual_delivery": "14.3",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "SN Khan",
@@ -1172,6 +1264,7 @@
               }
             },
             {
+              "actual_delivery": "14.4",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1182,6 +1275,7 @@
               }
             },
             {
+              "actual_delivery": "14.5",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1192,6 +1286,7 @@
               }
             },
             {
+              "actual_delivery": "14.6",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "SN Khan",
@@ -1207,6 +1302,7 @@
           "over": 15,
           "deliveries": [
             {
+              "actual_delivery": "15.1",
               "batter": "SN Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1217,6 +1313,7 @@
               }
             },
             {
+              "actual_delivery": "15.2",
               "batter": "SN Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1227,6 +1324,7 @@
               }
             },
             {
+              "actual_delivery": "15.3",
               "batter": "SN Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1237,6 +1335,7 @@
               }
             },
             {
+              "actual_delivery": "15.4",
               "batter": "AR Patel",
               "bowler": "J Little",
               "non_striker": "SN Khan",
@@ -1247,6 +1346,7 @@
               }
             },
             {
+              "actual_delivery": "15.5",
               "batter": "SN Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1257,6 +1357,7 @@
               }
             },
             {
+              "actual_delivery": "15.6",
               "batter": "AR Patel",
               "bowler": "J Little",
               "non_striker": "SN Khan",
@@ -1272,6 +1373,7 @@
           "over": 16,
           "deliveries": [
             {
+              "actual_delivery": "16.1",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1282,6 +1384,7 @@
               }
             },
             {
+              "actual_delivery": "16.2",
               "batter": "SN Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1303,6 +1406,7 @@
               ]
             },
             {
+              "actual_delivery": "16.3",
               "batter": "Aman Hakim Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1313,6 +1417,7 @@
               }
             },
             {
+              "actual_delivery": "16.4",
               "batter": "Aman Hakim Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1323,6 +1428,7 @@
               }
             },
             {
+              "actual_delivery": "16.5",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "Aman Hakim Khan",
@@ -1333,6 +1439,7 @@
               }
             },
             {
+              "actual_delivery": "16.6",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "Aman Hakim Khan",
@@ -1348,6 +1455,7 @@
           "over": 17,
           "deliveries": [
             {
+              "actual_delivery": "17.1",
               "batter": "AR Patel",
               "bowler": "J Little",
               "non_striker": "Aman Hakim Khan",
@@ -1358,6 +1466,7 @@
               }
             },
             {
+              "actual_delivery": "17.2",
               "batter": "Aman Hakim Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1368,6 +1477,7 @@
               }
             },
             {
+              "actual_delivery": "17.3",
               "batter": "Aman Hakim Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1378,6 +1488,7 @@
               }
             },
             {
+              "actual_delivery": "17.4",
               "batter": "AR Patel",
               "bowler": "J Little",
               "non_striker": "Aman Hakim Khan",
@@ -1388,6 +1499,7 @@
               }
             },
             {
+              "actual_delivery": "17.5",
               "batter": "AR Patel",
               "bowler": "J Little",
               "non_striker": "Aman Hakim Khan",
@@ -1398,6 +1510,7 @@
               }
             },
             {
+              "actual_delivery": "17.6",
               "batter": "Aman Hakim Khan",
               "bowler": "J Little",
               "non_striker": "AR Patel",
@@ -1413,6 +1526,7 @@
           "over": 18,
           "deliveries": [
             {
+              "actual_delivery": "18.1",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "Aman Hakim Khan",
@@ -1423,6 +1537,7 @@
               }
             },
             {
+              "actual_delivery": "18.2",
               "batter": "Aman Hakim Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1433,6 +1548,7 @@
               }
             },
             {
+              "actual_delivery": "18.3",
               "batter": "Aman Hakim Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1443,6 +1559,7 @@
               }
             },
             {
+              "actual_delivery": "18.4",
               "batter": "Aman Hakim Khan",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1464,6 +1581,7 @@
               ]
             },
             {
+              "actual_delivery": "18.5",
               "batter": "Kuldeep Yadav",
               "bowler": "Rashid Khan",
               "non_striker": "AR Patel",
@@ -1474,6 +1592,7 @@
               }
             },
             {
+              "actual_delivery": "18.6",
               "batter": "AR Patel",
               "bowler": "Rashid Khan",
               "non_striker": "Kuldeep Yadav",
@@ -1489,6 +1608,7 @@
           "over": 19,
           "deliveries": [
             {
+              "actual_delivery": "19.1",
               "batter": "AR Patel",
               "bowler": "Mohammed Shami",
               "non_striker": "Kuldeep Yadav",
@@ -1499,6 +1619,7 @@
               }
             },
             {
+              "actual_delivery": "19.2",
               "batter": "AR Patel",
               "bowler": "Mohammed Shami",
               "non_striker": "Kuldeep Yadav",
@@ -1509,6 +1630,7 @@
               }
             },
             {
+              "actual_delivery": "19.3",
               "batter": "AR Patel",
               "bowler": "Mohammed Shami",
               "non_striker": "Kuldeep Yadav",
@@ -1519,6 +1641,7 @@
               }
             },
             {
+              "actual_delivery": "19.4",
               "batter": "AR Patel",
               "bowler": "Mohammed Shami",
               "non_striker": "Kuldeep Yadav",
@@ -1540,6 +1663,7 @@
               ]
             },
             {
+              "actual_delivery": "19.5",
               "batter": "A Nortje",
               "bowler": "Mohammed Shami",
               "non_striker": "Kuldeep Yadav",
@@ -1550,6 +1674,7 @@
               }
             },
             {
+              "actual_delivery": "19.6",
               "batter": "A Nortje",
               "bowler": "Mohammed Shami",
               "non_striker": "Kuldeep Yadav",
@@ -1577,6 +1702,7 @@
           "over": 0,
           "deliveries": [
             {
+              "actual_delivery": "0.1",
               "batter": "WP Saha",
               "bowler": "KK Ahmed",
               "non_striker": "Shubman Gill",
@@ -1597,6 +1723,7 @@
               }
             },
             {
+              "actual_delivery": "0.2",
               "batter": "WP Saha",
               "bowler": "KK Ahmed",
               "non_striker": "Shubman Gill",
@@ -1607,6 +1734,7 @@
               }
             },
             {
+              "actual_delivery": "0.3",
               "batter": "WP Saha",
               "bowler": "KK Ahmed",
               "non_striker": "Shubman Gill",
@@ -1617,6 +1745,7 @@
               }
             },
             {
+              "actual_delivery": "0.4",
               "batter": "WP Saha",
               "bowler": "KK Ahmed",
               "non_striker": "Shubman Gill",
@@ -1627,6 +1756,7 @@
               }
             },
             {
+              "actual_delivery": "0.5",
               "batter": "WP Saha",
               "bowler": "KK Ahmed",
               "non_striker": "Shubman Gill",
@@ -1637,6 +1767,7 @@
               }
             },
             {
+              "actual_delivery": "0.6",
               "batter": "WP Saha",
               "bowler": "KK Ahmed",
               "non_striker": "Shubman Gill",
@@ -1652,6 +1783,7 @@
           "over": 1,
           "deliveries": [
             {
+              "actual_delivery": "1.1",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "WP Saha",
@@ -1662,6 +1794,7 @@
               }
             },
             {
+              "actual_delivery": "1.2",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "WP Saha",
@@ -1672,6 +1805,7 @@
               }
             },
             {
+              "actual_delivery": "1.3",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "WP Saha",
@@ -1682,6 +1816,7 @@
               }
             },
             {
+              "actual_delivery": "1.4",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "WP Saha",
@@ -1692,6 +1827,7 @@
               }
             },
             {
+              "actual_delivery": "1.5",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "WP Saha",
@@ -1702,6 +1838,7 @@
               }
             },
             {
+              "actual_delivery": "1.6",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "WP Saha",
@@ -1717,6 +1854,7 @@
           "over": 2,
           "deliveries": [
             {
+              "actual_delivery": "2.1",
               "batter": "WP Saha",
               "bowler": "A Nortje",
               "non_striker": "Shubman Gill",
@@ -1733,6 +1871,7 @@
               ]
             },
             {
+              "actual_delivery": "2.2",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "Shubman Gill",
@@ -1743,6 +1882,7 @@
               }
             },
             {
+              "actual_delivery": "2.3",
               "batter": "Shubman Gill",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -1753,6 +1893,7 @@
               }
             },
             {
+              "actual_delivery": "2.4",
               "batter": "Shubman Gill",
               "bowler": "A Nortje",
               "extras": {
@@ -1766,6 +1907,7 @@
               }
             },
             {
+              "actual_delivery": "2.4",
               "batter": "Shubman Gill",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -1776,6 +1918,7 @@
               }
             },
             {
+              "actual_delivery": "2.5",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "Shubman Gill",
@@ -1786,6 +1929,7 @@
               }
             },
             {
+              "actual_delivery": "2.6",
               "batter": "Shubman Gill",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -1801,6 +1945,7 @@
           "over": 3,
           "deliveries": [
             {
+              "actual_delivery": "3.1",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "Shubman Gill",
@@ -1811,6 +1956,7 @@
               }
             },
             {
+              "actual_delivery": "3.2",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "Shubman Gill",
@@ -1821,6 +1967,7 @@
               }
             },
             {
+              "actual_delivery": "3.3",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "Shubman Gill",
@@ -1831,6 +1978,7 @@
               }
             },
             {
+              "actual_delivery": "3.4",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -1841,6 +1989,7 @@
               }
             },
             {
+              "actual_delivery": "3.5",
               "batter": "Shubman Gill",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -1851,6 +2000,7 @@
               }
             },
             {
+              "actual_delivery": "3.6",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "Shubman Gill",
@@ -1866,6 +2016,7 @@
           "over": 4,
           "deliveries": [
             {
+              "actual_delivery": "4.1",
               "batter": "Shubman Gill",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -1882,6 +2033,7 @@
               ]
             },
             {
+              "actual_delivery": "4.2",
               "batter": "HH Pandya",
               "bowler": "A Nortje",
               "extras": {
@@ -1895,6 +2047,7 @@
               }
             },
             {
+              "actual_delivery": "4.2",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "HH Pandya",
@@ -1905,6 +2058,7 @@
               }
             },
             {
+              "actual_delivery": "4.3",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "HH Pandya",
@@ -1915,6 +2069,7 @@
               }
             },
             {
+              "actual_delivery": "4.4",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "extras": {
@@ -1928,6 +2083,7 @@
               }
             },
             {
+              "actual_delivery": "4.5",
               "batter": "HH Pandya",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -1938,6 +2094,7 @@
               }
             },
             {
+              "actual_delivery": "4.6",
               "batter": "HH Pandya",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -1953,6 +2110,7 @@
           "over": 5,
           "deliveries": [
             {
+              "actual_delivery": "5.1",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "HH Pandya",
@@ -1963,6 +2121,7 @@
               }
             },
             {
+              "actual_delivery": "5.2",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "HH Pandya",
@@ -1973,6 +2132,7 @@
               }
             },
             {
+              "actual_delivery": "5.3",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "HH Pandya",
@@ -1983,6 +2143,7 @@
               }
             },
             {
+              "actual_delivery": "5.4",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "HH Pandya",
@@ -1993,6 +2154,7 @@
               }
             },
             {
+              "actual_delivery": "5.5",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "HH Pandya",
@@ -2003,6 +2165,7 @@
               }
             },
             {
+              "actual_delivery": "5.6",
               "batter": "HH Pandya",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2029,6 +2192,7 @@
           "over": 6,
           "deliveries": [
             {
+              "actual_delivery": "6.1",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2049,6 +2213,7 @@
               }
             },
             {
+              "actual_delivery": "6.2",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2059,6 +2224,7 @@
               }
             },
             {
+              "actual_delivery": "6.3",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2069,6 +2235,7 @@
               }
             },
             {
+              "actual_delivery": "6.4",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2079,6 +2246,7 @@
               }
             },
             {
+              "actual_delivery": "6.5",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2089,6 +2257,7 @@
               }
             },
             {
+              "actual_delivery": "6.6",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2104,6 +2273,7 @@
           "over": 7,
           "deliveries": [
             {
+              "actual_delivery": "7.1",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2114,6 +2284,7 @@
               }
             },
             {
+              "actual_delivery": "7.2",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "V Shankar",
@@ -2124,6 +2295,7 @@
               }
             },
             {
+              "actual_delivery": "7.3",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2134,6 +2306,7 @@
               }
             },
             {
+              "actual_delivery": "7.4",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "V Shankar",
@@ -2151,6 +2324,7 @@
               }
             },
             {
+              "actual_delivery": "7.5",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "V Shankar",
@@ -2161,6 +2335,7 @@
               }
             },
             {
+              "actual_delivery": "7.6",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2176,6 +2351,7 @@
           "over": 8,
           "deliveries": [
             {
+              "actual_delivery": "8.1",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "V Shankar",
@@ -2186,6 +2362,7 @@
               }
             },
             {
+              "actual_delivery": "8.2",
               "batter": "V Shankar",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -2196,6 +2373,7 @@
               }
             },
             {
+              "actual_delivery": "8.3",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "V Shankar",
@@ -2206,6 +2384,7 @@
               }
             },
             {
+              "actual_delivery": "8.4",
               "batter": "V Shankar",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -2216,6 +2395,7 @@
               }
             },
             {
+              "actual_delivery": "8.5",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "V Shankar",
@@ -2226,6 +2406,7 @@
               }
             },
             {
+              "actual_delivery": "8.6",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "V Shankar",
@@ -2241,6 +2422,7 @@
           "over": 9,
           "deliveries": [
             {
+              "actual_delivery": "9.1",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2251,6 +2433,7 @@
               }
             },
             {
+              "actual_delivery": "9.2",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2261,6 +2444,7 @@
               }
             },
             {
+              "actual_delivery": "9.3",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2271,6 +2455,7 @@
               }
             },
             {
+              "actual_delivery": "9.4",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "V Shankar",
@@ -2281,6 +2466,7 @@
               }
             },
             {
+              "actual_delivery": "9.5",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "V Shankar",
@@ -2291,6 +2477,7 @@
               }
             },
             {
+              "actual_delivery": "9.6",
               "batter": "V Shankar",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2306,6 +2493,7 @@
           "over": 10,
           "deliveries": [
             {
+              "actual_delivery": "10.1",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "extras": {
@@ -2319,6 +2507,7 @@
               }
             },
             {
+              "actual_delivery": "10.1",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2329,6 +2518,7 @@
               }
             },
             {
+              "actual_delivery": "10.2",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2339,6 +2529,7 @@
               }
             },
             {
+              "actual_delivery": "10.3",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2349,6 +2540,7 @@
               }
             },
             {
+              "actual_delivery": "10.4",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2359,6 +2551,7 @@
               }
             },
             {
+              "actual_delivery": "10.5",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2369,6 +2562,7 @@
               }
             },
             {
+              "actual_delivery": "10.6",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2384,6 +2578,7 @@
           "over": 11,
           "deliveries": [
             {
+              "actual_delivery": "11.1",
               "batter": "V Shankar",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2394,6 +2589,7 @@
               }
             },
             {
+              "actual_delivery": "11.2",
               "batter": "V Shankar",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2404,6 +2600,7 @@
               }
             },
             {
+              "actual_delivery": "11.3",
               "batter": "V Shankar",
               "bowler": "KK Ahmed",
               "extras": {
@@ -2417,6 +2614,7 @@
               }
             },
             {
+              "actual_delivery": "11.4",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "V Shankar",
@@ -2427,6 +2625,7 @@
               }
             },
             {
+              "actual_delivery": "11.5",
               "batter": "V Shankar",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2437,6 +2636,7 @@
               }
             },
             {
+              "actual_delivery": "11.6",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "V Shankar",
@@ -2452,6 +2652,7 @@
           "over": 12,
           "deliveries": [
             {
+              "actual_delivery": "12.1",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "V Shankar",
@@ -2462,6 +2663,7 @@
               }
             },
             {
+              "actual_delivery": "12.2",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "V Shankar",
@@ -2472,6 +2674,7 @@
               }
             },
             {
+              "actual_delivery": "12.3",
               "batter": "V Shankar",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -2482,6 +2685,7 @@
               }
             },
             {
+              "actual_delivery": "12.4",
               "batter": "V Shankar",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -2492,6 +2696,7 @@
               }
             },
             {
+              "actual_delivery": "12.5",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "V Shankar",
@@ -2502,6 +2707,7 @@
               }
             },
             {
+              "actual_delivery": "12.6",
               "batter": "V Shankar",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -2517,6 +2723,7 @@
           "over": 13,
           "deliveries": [
             {
+              "actual_delivery": "13.1",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "V Shankar",
@@ -2527,6 +2734,7 @@
               }
             },
             {
+              "actual_delivery": "13.2",
               "batter": "V Shankar",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2550,6 +2758,7 @@
               ]
             },
             {
+              "actual_delivery": "13.3",
               "batter": "DA Miller",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2560,6 +2769,7 @@
               }
             },
             {
+              "actual_delivery": "13.4",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "DA Miller",
@@ -2570,6 +2780,7 @@
               }
             },
             {
+              "actual_delivery": "13.5",
               "batter": "B Sai Sudharsan",
               "bowler": "MR Marsh",
               "non_striker": "DA Miller",
@@ -2580,6 +2791,7 @@
               }
             },
             {
+              "actual_delivery": "13.6",
               "batter": "DA Miller",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
@@ -2595,6 +2807,7 @@
           "over": 14,
           "deliveries": [
             {
+              "actual_delivery": "14.1",
               "batter": "DA Miller",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2612,6 +2825,7 @@
               }
             },
             {
+              "actual_delivery": "14.2",
               "batter": "DA Miller",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2622,6 +2836,7 @@
               }
             },
             {
+              "actual_delivery": "14.3",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "DA Miller",
@@ -2632,6 +2847,7 @@
               }
             },
             {
+              "actual_delivery": "14.4",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "DA Miller",
@@ -2642,6 +2858,7 @@
               }
             },
             {
+              "actual_delivery": "14.5",
               "batter": "DA Miller",
               "bowler": "Kuldeep Yadav",
               "non_striker": "B Sai Sudharsan",
@@ -2652,6 +2869,7 @@
               }
             },
             {
+              "actual_delivery": "14.6",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "extras": {
@@ -2665,6 +2883,7 @@
               }
             },
             {
+              "actual_delivery": "14.6",
               "batter": "B Sai Sudharsan",
               "bowler": "Kuldeep Yadav",
               "non_striker": "DA Miller",
@@ -2680,6 +2899,7 @@
           "over": 15,
           "deliveries": [
             {
+              "actual_delivery": "15.1",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "DA Miller",
@@ -2690,6 +2910,7 @@
               }
             },
             {
+              "actual_delivery": "15.2",
               "batter": "DA Miller",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -2700,6 +2921,7 @@
               }
             },
             {
+              "actual_delivery": "15.3",
               "batter": "B Sai Sudharsan",
               "bowler": "Mukesh Kumar",
               "non_striker": "DA Miller",
@@ -2710,6 +2932,7 @@
               }
             },
             {
+              "actual_delivery": "15.4",
               "batter": "DA Miller",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -2720,6 +2943,7 @@
               }
             },
             {
+              "actual_delivery": "15.5",
               "batter": "DA Miller",
               "bowler": "Mukesh Kumar",
               "extras": {
@@ -2733,6 +2957,7 @@
               }
             },
             {
+              "actual_delivery": "15.5",
               "batter": "DA Miller",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -2743,6 +2968,7 @@
               }
             },
             {
+              "actual_delivery": "15.6",
               "batter": "DA Miller",
               "bowler": "Mukesh Kumar",
               "non_striker": "B Sai Sudharsan",
@@ -2758,6 +2984,7 @@
           "over": 16,
           "deliveries": [
             {
+              "actual_delivery": "16.1",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "DA Miller",
@@ -2768,6 +2995,7 @@
               }
             },
             {
+              "actual_delivery": "16.2",
               "batter": "DA Miller",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -2778,6 +3006,7 @@
               }
             },
             {
+              "actual_delivery": "16.3",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "DA Miller",
@@ -2788,6 +3017,7 @@
               }
             },
             {
+              "actual_delivery": "16.4",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "DA Miller",
@@ -2798,6 +3028,7 @@
               }
             },
             {
+              "actual_delivery": "16.5",
               "batter": "DA Miller",
               "bowler": "A Nortje",
               "non_striker": "B Sai Sudharsan",
@@ -2808,6 +3039,7 @@
               }
             },
             {
+              "actual_delivery": "16.6",
               "batter": "B Sai Sudharsan",
               "bowler": "A Nortje",
               "non_striker": "DA Miller",
@@ -2823,6 +3055,7 @@
           "over": 17,
           "deliveries": [
             {
+              "actual_delivery": "17.1",
               "batter": "DA Miller",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2833,6 +3066,7 @@
               }
             },
             {
+              "actual_delivery": "17.2",
               "batter": "DA Miller",
               "bowler": "KK Ahmed",
               "extras": {
@@ -2846,6 +3080,7 @@
               }
             },
             {
+              "actual_delivery": "17.2",
               "batter": "DA Miller",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2856,6 +3091,7 @@
               }
             },
             {
+              "actual_delivery": "17.3",
               "batter": "DA Miller",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2866,6 +3102,7 @@
               }
             },
             {
+              "actual_delivery": "17.4",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "DA Miller",
@@ -2876,6 +3113,7 @@
               }
             },
             {
+              "actual_delivery": "17.5",
               "batter": "B Sai Sudharsan",
               "bowler": "KK Ahmed",
               "non_striker": "DA Miller",
@@ -2886,6 +3124,7 @@
               }
             },
             {
+              "actual_delivery": "17.6",
               "batter": "DA Miller",
               "bowler": "KK Ahmed",
               "non_striker": "B Sai Sudharsan",
@@ -2901,6 +3140,7 @@
           "over": 18,
           "deliveries": [
             {
+              "actual_delivery": "18.1",
               "batter": "DA Miller",
               "bowler": "MR Marsh",
               "non_striker": "B Sai Sudharsan",
