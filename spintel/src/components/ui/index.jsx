@@ -62,7 +62,7 @@ export function KpiCard({ label, value, sub, icon, color = G.green }) {
       background: G.white, border: `1px solid ${G.gray200}`, borderRadius: 12,
       padding: "16px 18px", borderTop: `3px solid ${color}`,
     }}>
-      <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
+      <div style={{ marginBottom: 6, color }}>{icon}</div>
       <div style={{
         fontSize: 24, fontWeight: 700, color: G.gray900,
         fontFamily: "'Barlow Condensed', sans-serif", lineHeight: 1.1,
@@ -96,7 +96,7 @@ export function Card({ children, style = {} }) {
 export function SectionTitle({ children, icon }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-      {icon && <span style={{ fontSize: 18 }}>{icon}</span>}
+      {icon && <span style={{ display: "flex", alignItems: "center", color: "#6b7280" }}>{icon}</span>}
       <h3 style={{
         fontSize: 15, fontWeight: 700, color: G.gray800,
         fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3, margin: 0,
@@ -126,13 +126,13 @@ export function Spinner({ text = "Loading…" }) {
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
-export function EmptyState({ icon = "🏏", text }) {
+export function EmptyState({ icon, text }) {
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
       justifyContent: "center", padding: "60px 24px", gap: 12, color: G.gray400,
     }}>
-      <div style={{ fontSize: 40, opacity: 0.4 }}>{icon}</div>
+      <div style={{ opacity: 0.4, color: G.gray400 }}>{icon}</div>
       <div style={{ fontSize: 13, textAlign: "center", maxWidth: 280, lineHeight: 1.6 }}>
         {text}
       </div>

@@ -1,8 +1,9 @@
+import { Icon } from "@iconify/react";
 import { G } from "../../utils/tokens";
 
 const NAV_ITEMS = [
-  { id: "dashboard",  label: "Analysis Dashboard", icon: "📊" },
-  { id: "prediction", label: "Match Prediction",   icon: "🔮" },
+  { id: "dashboard",  label: "Analysis Dashboard", icon: "solar:chart-2-bold-duotone" },
+  { id: "prediction", label: "Match Prediction",   icon: "solar:magic-stick-3-bold-duotone" },
 ];
 
 export function Sidebar({ page, setPage, collapsed, setCollapsed }) {
@@ -19,7 +20,7 @@ export function Sidebar({ page, setPage, collapsed, setCollapsed }) {
         display: "flex", alignItems: "center", gap: 10,
         justifyContent: collapsed ? "center" : "flex-start",
       }}>
-        <span style={{ fontSize: 24 }}>🏏</span>
+        <Icon icon="solar:cricket-bold-duotone" width={26} color={G.green} />
         {!collapsed && (
           <div>
             <div style={{
@@ -56,26 +57,17 @@ export function Sidebar({ page, setPage, collapsed, setCollapsed }) {
             key={item.id}
             onClick={() => setPage(item.id)}
             style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: collapsed ? "11px" : "11px 12px",
-              borderRadius: 8,
-              border: "none",
+              width: "100%", display: "flex", alignItems: "center", gap: 12,
+              padding: collapsed ? "11px" : "11px 12px", borderRadius: 8, border: "none",
               background: page === item.id ? G.green : "transparent",
               color: page === item.id ? G.white : G.gray400,
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: "'Barlow Condensed', sans-serif",
-              letterSpacing: 0.3,
-              marginBottom: 2,
-              justifyContent: collapsed ? "center" : "flex-start",
+              cursor: "pointer", fontSize: 13, fontWeight: 600,
+              fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 0.3,
+              marginBottom: 2, justifyContent: collapsed ? "center" : "flex-start",
               transition: "all 0.15s",
             }}
           >
-            <span style={{ fontSize: 17, flexShrink: 0 }}>{item.icon}</span>
+            <Icon icon={item.icon} width={18} />
             {!collapsed && item.label}
           </button>
         ))}
@@ -87,11 +79,12 @@ export function Sidebar({ page, setPage, collapsed, setCollapsed }) {
         style={{
           margin: "0 8px 16px", padding: "10px",
           background: G.gray800, border: "none", borderRadius: 8,
-          color: G.gray400, cursor: "pointer", fontSize: 16,
+          color: G.gray400, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all 0.15s",
         }}
       >
-        {collapsed ? "→" : "←"}
+        <Icon icon={collapsed ? "solar:alt-arrow-right-bold" : "solar:alt-arrow-left-bold"} width={16} />
       </button>
     </aside>
   );

@@ -1,3 +1,4 @@
+import { Icon } from "@iconify/react";
 import { G } from "../../utils/tokens";
 import { Badge } from "../ui/index.jsx";
 
@@ -11,13 +12,11 @@ const SUBS = {
 };
 
 export function Topbar({ page, apiStatus, batterCount }) {
-  const dotColor =
-    apiStatus === "connected"    ? G.green :
-    apiStatus === "checking"     ? G.amber : G.red;
-
-  const statusLabel =
-    apiStatus === "connected"    ? `Connected · ${batterCount} batters` :
-    apiStatus === "checking"     ? "Connecting…" : "API Offline";
+  const isConnected  = apiStatus === "connected";
+  const isChecking   = apiStatus === "checking";
+  const dotColor     = isConnected ? G.green : isChecking ? G.amber : G.red;
+  const statusLabel  = isConnected ? `Connected · ${batterCount} batters` : isChecking ? "Connecting…" : "API Offline";
+  const statusIcon   = isConnected ? "solar:wifi-bold" : isChecking ? "svg-spinners:3-dots-fade" : "solar:wifi-router-minimalistic-broken";
 
   return (
     <div style={{
@@ -40,13 +39,8 @@ export function Topbar({ page, apiStatus, batterCount }) {
         display: "flex", alignItems: "center", gap: 6,
         padding: "4px 12px", border: `1px solid ${G.gray200}`, borderRadius: 20,
       }}>
-        <div style={{
-          width: 8, height: 8, borderRadius: "50%", background: dotColor,
-        }} />
-        <span style={{
-          fontSize: 11, color: G.gray500,
-          fontFamily: "'Barlow Condensed', sans-serif",
-        }}>
+        <Icon icon={statusIcon} width={14} color={dotColor} />
+        <span style={{ fontSize: 11, color: G.gray500, fontFamily: "'Barlow Condensed', sans-serif" }}>
           {statusLabel}
         </span>
       </div>

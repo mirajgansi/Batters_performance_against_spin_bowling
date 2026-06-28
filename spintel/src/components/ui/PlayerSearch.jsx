@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Icon } from "@iconify/react";
 import { G } from "../../utils/tokens";
 import { Avatar, PhotoAvatar } from "./index.jsx";
 
@@ -7,7 +8,7 @@ export function PlayerSearch({
   selected,
   onSelect,
   placeholder = "Search IPL Batter…",
-  photoMap = {},
+  photoMap = {},   // ← new: ID → imgUrl map from photoLoader
 }) {
   const [q,    setQ]    = useState(selected ? (selected.longName || selected.Name || "") : "");
   const [open, setOpen] = useState(false);
@@ -30,11 +31,8 @@ export function PlayerSearch({
 
   return (
     <div style={{ position: "relative" }}>
-      <span style={{
-        position: "absolute", left: 12, top: "50%",
-        transform: "translateY(-50%)", fontSize: 16,
-      }}>
-        🔍
+      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+        <Icon icon="solar:magnifer-bold" width={16} color={G.gray400} />
       </span>
       <input
         value={q}
@@ -68,13 +66,13 @@ export function PlayerSearch({
               onMouseEnter={(e) => (e.currentTarget.style.background = G.greenLight)}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
- <PhotoAvatar
-  id={p.ID}
-  name={p.longName || p.Name}
-  size={34}
-  color={G.green}
-  photoUrl={photoMap[String(p.ID)]}
-/>
+              <PhotoAvatar
+                id={p.ID}
+                name={p.longName || p.Name}
+                size={34}
+                color={G.green}
+                photoUrl={photoMap[String(p.ID)]}
+              />
               <div>
                 <div style={{
                   fontWeight: 600, fontSize: 14, color: G.gray800,

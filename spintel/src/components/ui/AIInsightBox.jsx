@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Icon } from "@iconify/react";
 import { G } from "../../utils/tokens";
 import { streamOllama } from "../../api/ollama";
 
@@ -28,12 +29,9 @@ export function AIInsightBox({ prompt, triggerKey, disabled }) {
       border: `1px solid ${G.green}30`, borderRadius: 12,
       padding: "18px 20px", borderLeft: `4px solid ${G.green}`,
     }}>
-      <div style={{
-        display: "flex", alignItems: "center",
-        justifyContent: "space-between", marginBottom: 12,
-      }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 18 }}>✨</span>
+          <Icon icon="solar:stars-bold-duotone" width={20} color={G.green} />
           <span style={{
             fontSize: 14, fontWeight: 700, color: G.green,
             fontFamily: "'Barlow Condensed', sans-serif",
@@ -53,27 +51,25 @@ export function AIInsightBox({ prompt, triggerKey, disabled }) {
             cursor: loading || disabled ? "not-allowed" : "pointer",
             fontFamily: "'Barlow Condensed', sans-serif",
             opacity: loading ? 0.7 : 1,
+            display: "flex", alignItems: "center", gap: 6,
           }}
         >
+          <Icon icon={loading ? "svg-spinners:3-dots-fade" : generated ? "solar:refresh-bold" : "solar:play-bold"} width={13} />
           {loading ? "Generating…" : generated ? "Refresh" : "Generate Insight"}
         </button>
       </div>
 
-      {error && <div style={{ color: G.red, fontSize: 13 }}>{error}</div>}
+      {error && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, color: G.red, fontSize: 13 }}>
+          <Icon icon="solar:danger-triangle-bold" width={16} />
+          {error}
+        </div>
+      )}
 
       {loading && !text && (
         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: 8, height: 8, borderRadius: "50%",
-                background: G.green, opacity: 0.4,
-                animation: `blink 1.2s ${i * 0.2}s infinite`,
-              }}
-            />
-          ))}
-          <span style={{ fontSize: 13, color: G.gray500, marginLeft: 6 }}>
+          <Icon icon="svg-spinners:3-dots-fade" width={24} color={G.green} />
+          <span style={{ fontSize: 13, color: G.gray500, marginLeft: 4 }}>
             Analysing performance data…
           </span>
         </div>
