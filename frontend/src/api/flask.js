@@ -1,7 +1,7 @@
 // ─── All Flask API calls go through here ─────────────────────────────────────
 // In dev, Vite proxies /api/* → http://localhost:5000/* (see vite.config.js)
 // In prod, set VITE_API_URL env var to your deployed Flask URL
-const BASE = "https://spin-backend.onrender.com";
+const BASE = "VITE_API_URL" in import.meta.env ? import.meta.env.VITE_API_URL : "/api";
 
 async function apiFetch(path, opts = {}) {
   const res = await fetch(`${BASE}${path}`, opts);
