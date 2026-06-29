@@ -35,7 +35,7 @@ BACKUP_DIR = os.path.join(CSV_DIR, "backups")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # ── Security ──────────────────────────────────────────────────────────────────
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,https://spiniq-ipl-spin-analytics.onrender.com").split(",")
 CORS(app, origins=ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 

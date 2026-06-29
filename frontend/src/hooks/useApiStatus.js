@@ -12,7 +12,7 @@ export function useApiStatus() {
     const check = async () => {
       try {
         const r = await fetch(
-          (import.meta.env.VITE_API_URL ?? "/api") + "/health",
+          ("https://spin-backend.onrender.com" ) + "/health",
           { signal: AbortSignal.timeout(2500) }
         );
         setStatus(r.ok ? "connected" : "disconnected");
