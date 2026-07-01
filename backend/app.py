@@ -4,13 +4,11 @@ IPL Spin Prediction Flask API  — v3 Model
 Supports:
   - v3 model (20 features): cluster, venue, form, ball-level derived features
   - Falls back gracefully to v1 (12 features) if v3 CSVs are missing
-  - Saved predictions with JSON persistence
   - Spin bowler list endpoint
 
 Added endpoints:
   GET  /teams               — unique IPL team names from players CSV
   GET  /validation-stats    — reads validation_batter_overall.csv (from validation notebook)
-  GET  /saved-predictions   — now returns predictions + summary stats envelope
 """
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,10 +21,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import os
-import json
-import pathlib
 import shutil
-import requests as req
 from datetime import datetime
 from google import genai
 
@@ -38,27 +33,13 @@ CSV_DIR  = os.path.join(BASE_DIR, "csv")   # all CSVs and PKLs live here
 BACKUP_DIR = os.path.join(CSV_DIR, "backups")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# ── Security ──────────────────────────────────────────────────────────────────
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,https://spiniq-ipl-spin-analytics.onrender.com").split(",")
-CORS(app, origins=ALLOWED_ORIGINS)
-app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
-
-limiter = Limiter(
-    get_remote_address, app=app,
-    default_limits=["200 per hour", "50 per minute"],
-    storage_uri="memory://",
-)
-
-# REPLACE with:
+# ── Security: CORS + request size limit ──────────────────────────────────────
 ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*")
-CORS(app, origins="*")
-
-# ── Security: limit request body size to 1MB ─────────────────────────────────
+CORS(app, origins=ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # 1 MB
 
 # ── Gemini client (reads GEMINI_API_KEY from env) ────────────────────────────
 gemini_client = genai.Client()
-
 
 # ── Security: rate limiting ───────────────────────────────────────────────────
 limiter = Limiter(
@@ -67,12 +48,6 @@ limiter = Limiter(
     default_limits=["200 per hour", "50 per minute"],
     storage_uri="memory://",
 )
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# ── CSV Backup: protect your data files ───────────────────────────────────────
-BACKUP_DIR = os.path.join(BASE_DIR, "backups")
-os.makedirs(BACKUP_DIR, exist_ok=True)
 
 PROTECTED_CSVS = [
     "batter_features.csv",
@@ -249,8 +224,6 @@ if os.path.exists(_cricsheet_path):
     print(f"cricsheet_balls_parsed.csv loaded — {len(bbb_df)} rows, columns: {list(bbb_df.columns)}")
 
     # ── Alias cricsheet columns → names the rest of the code expects ──────
-    # cricsheet uses: batter, bowler, runs_batter, is_wicket, over, season, venue
-    # old code expects: batter, bowler, batsmanrun, iswicketdelivery, overs, season
     if "runs_batter" in bbb_df.columns and "batsmanrun" not in bbb_df.columns:
         bbb_df["batsmanrun"] = bbb_df["runs_batter"]
     if "is_wicket" in bbb_df.columns and "iswicketdelivery" not in bbb_df.columns:
@@ -270,9 +243,7 @@ if os.path.exists(_cricsheet_path):
 elif os.path.exists(_bbb_path):
     bbb_df = pd.read_csv(_bbb_path)
     print(f"Ball_By_Ball_Match_Data.csv loaded (fallback) — {len(bbb_df)} rows")
-    # Lowercase all columns for consistency
     bbb_df.columns = [c.lower() for c in bbb_df.columns]
-    # Derive season from match ID if not present
     if "season" not in bbb_df.columns:
         def id_to_season(match_id):
             if   match_id < 392000:  return 2008
@@ -303,7 +274,6 @@ else:
     print("No ball-by-ball CSV found — phase/season/venue breakdowns will be estimated")
 
 if bbb_df is not None:
-    # ── Derive phase from overs if not present ────────────────────────────
     over_col = next((c for c in bbb_df.columns if c in ("overs", "over")), None)
     if "phase" not in bbb_df.columns and over_col:
         def over_to_phase(o):
@@ -313,7 +283,6 @@ if bbb_df is not None:
         bbb_df["phase"] = bbb_df[over_col].apply(over_to_phase)
         print("  'phase' derived from overs")
 
-    # ── Detect venue column ───────────────────────────────────────────────
     _vcands = [c for c in bbb_df.columns if any(k in c for k in ("venue", "stadium", "ground", "city", "location"))]
     BBB_VENUE_COL = _vcands[0] if _vcands else None
     print(f"  Venue column: {BBB_VENUE_COL}")
@@ -326,7 +295,6 @@ _bss_path = os.path.join(CSV_DIR, "bowler_spin_stats.csv")
 bowler_spin_df = pd.read_csv(_bss_path) if os.path.exists(_bss_path) else None
 if bowler_spin_df is not None:
     print(f"bowler_spin_stats.csv loaded — {len(bowler_spin_df)} bowlers")
-    # Build fast lookup: bowler_name → spin_type_key
     BOWLER_SPIN_LOOKUP = dict(zip(bowler_spin_df["bowler"], bowler_spin_df["spin_type"]))
 else:
     print("bowler_spin_stats.csv not found — will derive spin type from players_df")
@@ -342,21 +310,6 @@ if val_overall_df is not None:
 else:
     print("  validation_batter_overall.csv not found — run IPL_Spin_Validation__2_.ipynb first")
 
-# ── Saved predictions persistence ────────────────────────────────────────────
-PREDS_FILE = pathlib.Path(CSV_DIR) / "saved_predictions.json"
-
-def _load_preds():
-    if PREDS_FILE.exists():
-        try:
-            return json.loads(PREDS_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            return []
-    return []
-
-def _save_preds(preds):
-    PREDS_FILE.write_text(json.dumps(preds, indent=2, ensure_ascii=False), encoding="utf-8")
-
-print("CSVs loaded. Server ready.")
 
 # ── Input validation helpers ──────────────────────────────────────────────────
 VALID_SPIN_TYPES = {
@@ -472,9 +425,6 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
                           spin_type: str = ""):
     """
     Build the correct feature DataFrame for whichever model version is active.
-    Uses per-spin-type batter stats when available (batter_spin_features.csv),
-    falls back to career stats (batter_features.csv) otherwise.
-    Returns (DataFrame, feature_list_used).
     """
     over_map = {"Powerplay": 3, "powerplay": 3,
                 "Middle": 10,   "middle": 10,
@@ -482,7 +432,6 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
     over_num = over_map.get(phase, 10)
     ball_num = 3
 
-    # Use spin-specific stats if available, otherwise career stats
     spin_bf = get_spin_specific_stats(batter_name, spin_type) if spin_type else None
     src     = spin_bf if spin_bf is not None else bf
 
@@ -529,7 +478,6 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
 # ROUTES
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── GET /health ───────────────────────────────────────────────────────────────
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
@@ -544,7 +492,6 @@ def health():
     })
 
 
-# ── GET /players ──────────────────────────────────────────────────────────────
 @app.route("/players", methods=["GET"])
 def get_players():
     """All players from 2026_players_details.csv"""
@@ -554,13 +501,9 @@ def get_players():
     return jsonify(players.to_dict(orient="records"))
 
 
-# ── GET /teams ────────────────────────────────────────────────────────────────
 @app.route("/teams", methods=["GET"])
 def get_teams():
-    """
-    Unique IPL team names derived from players CSV.
-    Used by the frontend opponent team selector.
-    """
+    """Unique IPL team names derived from players CSV."""
     col = None
     for c in ["longTeamNames", "teamName", "team"]:
         if c in players_df.columns:
@@ -581,13 +524,9 @@ def get_teams():
     return jsonify(teams)
 
 
-# ── GET /spin-bowlers ─────────────────────────────────────────────────────────
 @app.route("/spin-bowlers", methods=["GET"])
 def get_spin_bowlers():
-    """
-    Returns all players whose bowling style is one of the 5 spin types.
-    Optional ?team=<team name> filter.
-    """
+    """Returns all players whose bowling style is one of the 5 spin types."""
     SPIN_KEYS = [
         "right-arm offbreak",
         "slow left-arm orthodox",
@@ -618,7 +557,6 @@ def get_spin_bowlers():
     return jsonify(spin.to_dict(orient="records"))
 
 
-# ── GET /venues ───────────────────────────────────────────────────────────────
 @app.route("/venues", methods=["GET"])
 def get_venues():
     """Return venues with spin stats if venue_features.csv exists."""
@@ -626,7 +564,6 @@ def get_venues():
         data = venue_df.copy()
         data = data.where(pd.notnull(data), None)
         return jsonify(data.to_dict(orient="records"))
-    # Fallback: hardcoded IPL venues
     return jsonify([
         {"venue": "Wankhede Stadium"},
         {"venue": "M. A. Chidambaram Stadium"},
@@ -641,15 +578,9 @@ def get_venues():
     ])
 
 
-# ── GET /player-seasons/<player_id> ──────────────────────────────────────────
 @app.route("/player-seasons/<int:player_id>", methods=["GET"])
 def player_seasons(player_id):
-    """
-    Return seasons the specific player has ball-by-ball data for, with ball counts.
-    Used to populate the season filter dropdown dynamically per player.
-    Response: { seasons: [ { season: "2023", balls: 142, low_data: false }, ... ] }
-    LOW_DATA_THRESHOLD: fewer than 30 balls in a season = low data warning.
-    """
+    """Return seasons the specific player has ball-by-ball data for, with ball counts."""
     LOW_DATA = 30
 
     batter_name = get_batter_name(player_id)
@@ -683,15 +614,9 @@ def player_seasons(player_id):
     return jsonify({"seasons": result})
 
 
-# ── GET /player-venues/<player_id> ───────────────────────────────────────────
 @app.route("/player-venues/<int:player_id>", methods=["GET"])
 def player_venues(player_id):
-    """
-    Return venues the specific player has ball-by-ball data for, with ball counts.
-    Used to populate the venue filter dropdown dynamically per player.
-    Response: { venues: [ { venue: "Wankhede Stadium", balls: 98, low_data: false }, ... ] }
-    LOW_DATA_THRESHOLD: fewer than 20 balls at a venue = low data warning.
-    """
+    """Return venues the specific player has ball-by-ball data for, with ball counts."""
     LOW_DATA = 20
 
     batter_name = get_batter_name(player_id)
@@ -729,14 +654,12 @@ def player_venues(player_id):
     return jsonify({"venues": result})
 
 
-# ── GET /player-stats/<player_id> ─────────────────────────────────────────────
 @app.route("/player-stats/<int:player_id>", methods=["GET"])
 @limiter.limit("60 per minute")
 def player_stats(player_id):
-    # Read filter params from query string
-    filter_season   = request.args.get("season",   None)   # e.g. "2023"
-    filter_spin_key = request.args.get("spin_type", None)  # e.g. "legbreak"
-    filter_venue    = request.args.get("venue",    None)   # e.g. "Wankhede Stadium"
+    filter_season   = request.args.get("season",   None)
+    filter_spin_key = request.args.get("spin_type", None)
+    filter_venue    = request.args.get("venue",    None)
 
     batter_name = get_batter_name(player_id)
     if not batter_name:
@@ -751,13 +674,11 @@ def player_stats(player_id):
     bf = bf_row.iloc[0]
     bvs_rows = bvs_df[bvs_df["batter"] == batter_name]
 
-    # Apply season/spin filters to ball-by-ball data for this request
     bbb_filtered = bbb_df.copy() if bbb_df is not None else None
     if bbb_filtered is not None:
         if filter_season:
             bbb_filtered = bbb_filtered[bbb_filtered["season"] == int(filter_season)]
         if filter_spin_key:
-            # Use pre-computed lookup if available, else scan players_df
             if BOWLER_SPIN_LOOKUP:
                 _spin_bowlers = [b for b, s in BOWLER_SPIN_LOOKUP.items() if s == filter_spin_key]
             else:
@@ -768,7 +689,6 @@ def player_stats(player_id):
                 ]
             bbb_filtered = bbb_filtered[bbb_filtered["bowler"].isin(_spin_bowlers)]
         if filter_venue and BBB_VENUE_COL and BBB_VENUE_COL in bbb_filtered.columns:
-            # Exact match first; fall back to contains if nothing found
             exact = bbb_filtered[bbb_filtered[BBB_VENUE_COL] == filter_venue]
             bbb_filtered = exact if not exact.empty else bbb_filtered[bbb_filtered[BBB_VENUE_COL].str.contains(filter_venue, case=False, na=False)]
     sr           = float(bf.get("sr", 0))
@@ -799,8 +719,7 @@ def player_stats(player_id):
             wkt_rate     = round(f_wkts / f_balls * 100, 2) if f_balls > 0 else wkt_rate
             total_balls  = f_balls
             dismissals   = f_wkts
-            
-    # ── Runs distribution — use real columns if present, derive if not ─────────
+
     ones   = int(bf.get("ones",   0))
     twos   = int(bf.get("twos",   0))
     fours  = int(bf.get("fours",  0))
@@ -824,11 +743,9 @@ def player_stats(player_id):
             {"name": "Dots",    "value": round(dot_pct, 1)},
         ]
 
-    # ── Cluster archetype (v3) ────────────────────────────────────────────────
     cluster      = get_cluster(bf.to_dict())
     cluster_name = CLUSTER_NAMES.get(cluster, "Unknown")
 
-    # ── Dismissal breakdown ───────────────────────────────────────────────────
     caught  = max(1, round(dismissals * 0.50))
     bowled  = max(1, round(dismissals * 0.20))
     lbw     = max(1, round(dismissals * 0.15))
@@ -842,7 +759,6 @@ def player_stats(player_id):
         {"name": "Other",   "value": other},
     ]
 
-    # ── Phase breakdown ───────────────────────────────────────────────────────
     phases = []
     BBB_BATTER_COL = None
     if bbb_filtered is not None:
@@ -873,8 +789,6 @@ def player_stats(player_id):
             {"phase": "Death",     "sr": round(sr * 1.20, 1), "avg": round(avg * 0.75, 1), "balls": round(total_balls * 0.25)},
         ]
 
-    # ── Spin type comparison ──────────────────────────────────────────────────
-    # AFTER — labels now exactly match frontend SPIN_TYPE_OPTIONS labels
     SPIN_TYPES = [
         ("right-arm offbreak",     "Off Spin",            "OB"),
         ("slow left-arm orthodox", "Left Arm Orthodox",   "SLA"),
@@ -883,8 +797,6 @@ def player_stats(player_id):
         ("left-arm wrist-spin",    "Left Arm Wrist Spin", "LWS"),
     ]
 
-    # Use pre-computed bowler_spin_stats.csv if available (faster, more complete)
-    # Falls back to scanning players_df
     if BOWLER_SPIN_LOOKUP:
         bowler_spin_map = dict(BOWLER_SPIN_LOOKUP)
     else:
@@ -938,11 +850,8 @@ def player_stats(player_id):
             "balls":         0,
         })
 
-    # ── Season trend ──────────────────────────────────────────────────────────
-    # Always use the UNFILTERED bbb_df so the chart shows all seasons even when
-    # the user has selected a specific season in the filter dropdown.
     seasons = []
-    _bbb_for_trend = bbb_df  # never the season-filtered copy
+    _bbb_for_trend = bbb_df
     _batter_col_trend = None
     if _bbb_for_trend is not None:
         for col in ["batter", "Batter"]:
@@ -950,7 +859,6 @@ def player_stats(player_id):
                 _batter_col_trend = col
                 break
 
-    # Optionally apply spin_type filter to the trend (keeps spin-type context)
     if _bbb_for_trend is not None and filter_spin_key and "bowler" in _bbb_for_trend.columns:
         if BOWLER_SPIN_LOOKUP:
             _spin_bowlers_trend = [b for b, s in BOWLER_SPIN_LOOKUP.items() if s == filter_spin_key]
@@ -1000,7 +908,7 @@ def player_stats(player_id):
         "cluster":           cluster,
         "cluster_name":      cluster_name,
         "form_sr_last5":     round(form_sr, 1),
-        "runsDistribution":  runs_distribution,   # ← new: real pie chart data
+        "runsDistribution":  runs_distribution,
         "phases":            phases,
         "dismissals":        dismissals_data,
         "spinComparison":    spin_comparison,
@@ -1012,7 +920,6 @@ def player_stats(player_id):
     })
 
 
-# ── POST /predict ─────────────────────────────────────────────────────────────
 @app.route("/predict", methods=["POST"])
 @limiter.limit("30 per minute")
 def predict():
@@ -1100,13 +1007,11 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 
-# ── GET /validation-stats ─────────────────────────────────────────────────────
 @app.route("/validation-stats", methods=["GET"])
 def validation_stats():
     """
     Returns accuracy metrics from validation_batter_overall.csv and
     validation_batter_match.csv — produced by IPL_Spin_Validation__2_.ipynb.
-    Returns { available: false } if the notebook hasn't been run yet.
     """
     if val_overall_df is None:
         return jsonify({
@@ -1116,7 +1021,6 @@ def validation_stats():
 
     df = val_overall_df.copy().where(pd.notnull(val_overall_df), None)
 
-    # ── Summary numbers ───────────────────────────────────────────────────────
     summary = {"total_batters_validated": len(df)}
 
     if "mean_abs_error" in df.columns:
@@ -1131,11 +1035,9 @@ def validation_stats():
     if "correct_pct" in df.columns:
         summary["mean_correct_pct"] = round(float(df["correct_pct"].mean()), 1)
 
-    # ── Per-batter rows (sorted by most balls faced) ───────────────────────────
     sort_col = "total_balls" if "total_balls" in df.columns else df.columns[0]
     per_batter = df.sort_values(sort_col, ascending=False).to_dict(orient="records")
 
-    # ── Match-level summary if available ──────────────────────────────────────
     match_summary = None
     if val_match_df is not None:
         match_summary = val_match_df.where(
@@ -1150,102 +1052,6 @@ def validation_stats():
     })
 
 
-# ── GET /saved-predictions ────────────────────────────────────────────────────
-@app.route("/saved-predictions", methods=["GET"])
-def get_saved_predictions():
-    """
-    Return all saved predictions plus a summary envelope:
-      { predictions: [...], summary: { total, accurate, partial, inaccurate, pending, avg_run_diff } }
-    """
-    preds = _load_preds()
-
-    accurate   = sum(1 for p in preds if p.get("status") == "Accurate")
-    partial    = sum(1 for p in preds if p.get("status") == "Partially Accurate")
-    inaccurate = sum(1 for p in preds if p.get("status") == "Inaccurate")
-    pending    = sum(1 for p in preds if p.get("status") == "Pending")
-
-    diffs = [
-        abs(float(p["actual_runs"]) - float(p["predicted_runs"]))
-        for p in preds
-        if p.get("actual_runs") is not None and p.get("predicted_runs") is not None
-    ]
-    avg_diff = round(sum(diffs) / len(diffs), 1) if diffs else None
-
-    return jsonify({
-        "predictions": preds,
-        "summary": {
-            "total":        len(preds),
-            "accurate":     accurate,
-            "partial":      partial,
-            "inaccurate":   inaccurate,
-            "pending":      pending,
-            "avg_run_diff": avg_diff,
-        },
-    })
-
-
-# ── POST /save-prediction ─────────────────────────────────────────────────────
-@app.route("/save-prediction", methods=["POST"])
-def save_prediction():
-    """
-    Save a new prediction.
-    Expected body: { player_id, batter_name, match, venue, spin_type, phase,
-                     predicted_sr, predicted_runs, dismissal_prob, confidence, ... }
-    """
-    data  = request.get_json(force=True)
-    preds = _load_preds()
-    data["id"]     = (max((p.get("id", 0) for p in preds), default=0) + 1)
-    data["status"] = "Pending"
-    preds.append(data)
-    _save_preds(preds)
-    return jsonify({"ok": True, "id": data["id"]})
-
-
-# ── POST /update-prediction/<id> ──────────────────────────────────────────────
-@app.route("/update-prediction/<int:pred_id>", methods=["POST"])
-def update_prediction(pred_id):
-    """
-    Update a saved prediction with actual match results.
-    Expected body: { actual_runs, actual_sr, dismissed (bool), notes (optional) }
-    Auto-computes accuracy status.
-    """
-    data  = request.get_json(force=True)
-    preds = _load_preds()
-
-    updated      = False
-    final_status = "unknown"
-    for p in preds:
-        if p.get("id") == pred_id:
-            p.update(data)
-            pred_runs   = float(p.get("predicted_runs", 0))
-            actual_runs = float(p.get("actual_runs", 0))
-            diff        = abs(actual_runs - pred_runs)
-            if diff <= 5:
-                p["status"] = "Accurate"
-            elif diff <= 15:
-                p["status"] = "Partially Accurate"
-            else:
-                p["status"] = "Inaccurate"
-            final_status = p["status"]
-            updated = True
-            break
-
-    if not updated:
-        return jsonify({"error": f"Prediction {pred_id} not found"}), 404
-
-    _save_preds(preds)
-    return jsonify({"ok": True, "status": final_status})
-
-
-# ── DELETE /saved-predictions/<id> ───────────────────────────────────────────
-@app.route("/saved-predictions/<int:pred_id>", methods=["DELETE"])
-def delete_prediction(pred_id):
-    preds = [p for p in _load_preds() if p.get("id") != pred_id]
-    _save_preds(preds)
-    return jsonify({"ok": True})
-
-
-# ── POST /ai-insight (Gemini streaming) ───────────────────────────────────────
 @app.route("/ai-insight", methods=["POST"])
 def ai_insight():
     data   = request.get_json(force=True)
@@ -1273,36 +1079,6 @@ def ai_insight():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-    data   = request.get_json(force=True)
-    prompt = data.get("prompt", "")
-    try:
-        import json as _json
-
-        def generate():
-            res = req.post("http://localhost:11434/api/generate", json={
-                "model":   "llama3",
-                "prompt":  prompt,
-                "stream":  True,
-                "options": {"num_predict": 150, "temperature": 0.7},
-            }, stream=True, timeout=300)
-            for line in res.iter_lines():
-                if line:
-                    chunk = _json.loads(line)
-                    token = chunk.get("response", "")
-                    done  = chunk.get("done", False)
-                    yield f"data: {_json.dumps({'token': token, 'done': done})}\n\n"
-                    if done:
-                        break
-
-        return app.response_class(
-            generate(),
-            mimetype="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
 
 
 # ── Global error handlers ─────────────────────────────────────────────────────
@@ -1318,9 +1094,6 @@ def rate_limited(e):
 def server_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
-# ─────────────────────────────────────────────────────────────────────────────
-# For local dev only. In production, run with:
-#   gunicorn -w 2 -b 0.0.0.0:5000 app:app
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
