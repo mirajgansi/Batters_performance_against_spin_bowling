@@ -7,7 +7,7 @@ import {
 } from "../components/ui/index.jsx";
 import { PlayerSearch } from "../components/ui/PlayerSearch.jsx";
 import { fetchPlayerStats, runPrediction } from "../api/flask";
-import { streamOllama } from "../api/ollama";
+import { streamGemini } from "../api/gemini";
 
 export function PredictionPage({ players, venues, teams, apiOk, photoMap = {} }) {
   const [player,      setPlayer]      = useState(null);
@@ -62,7 +62,7 @@ Prediction:
 - Model Version: ${data.model_version}
 
 Write a concise analysis in 3-4 sentences. Explain why the model predicts this performance, which player strengths, matchup, venue, and phase contribute, and the biggest uncertainty that could cause actual performance to differ. Do NOT repeat every statistic above. Write in the style of a professional Cricbuzz or ESPNcricinfo analyst.`;
-      try { await streamOllama(prompt, (t) => setAiPredText(t)); } catch {}
+      try { await streamGemini(prompt, (t) => setAiPredText(t)); } catch {}
       setAiPredLoad(false);
     } catch (e) {
       setPredResult({ error: e.message });

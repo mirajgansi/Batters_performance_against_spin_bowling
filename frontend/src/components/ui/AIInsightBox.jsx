@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { G } from "../../utils/tokens";
-import { streamOllama } from "../../api/ollama";
+import { streamGemini } from "../../api/gemini";
 
 export function AIInsightBox({ prompt, triggerKey, disabled }) {
   const [text,      setText]      = useState("");
@@ -13,10 +13,10 @@ export function AIInsightBox({ prompt, triggerKey, disabled }) {
     if (disabled) return;
     setLoading(true); setError(null); setText(""); setGenerated(false);
     try {
-      await streamOllama(prompt, (t) => setText(t));
+      await streamGemini(prompt, (t) => setText(t));
       setGenerated(true);
     } catch {
-      setError("AI unavailable. Make sure Ollama is running: ollama serve");
+      setError("AI unavailable. Make sure Gemini is running.");
     }
     setLoading(false);
   }, [prompt, disabled]);

@@ -12,6 +12,8 @@ Added endpoints:
   GET  /validation-stats    — reads validation_batter_overall.csv (from validation notebook)
   GET  /saved-predictions   — now returns predictions + summary stats envelope
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -26,6 +28,8 @@ import pathlib
 import shutil
 import requests as req
 from datetime import datetime
+from google import genai
+
 
 app = Flask(__name__)
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -35,7 +39,7 @@ BACKUP_DIR = os.path.join(CSV_DIR, "backups")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # ── Security ──────────────────────────────────────────────────────────────────
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://batters-performance-against-spin-bo.vercel.app").split(",")
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,https://spiniq-ipl-spin-analytics.onrender.com").split(",")
 CORS(app, origins=ALLOWED_ORIGINS)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
@@ -51,6 +55,10 @@ CORS(app, origins="*")
 
 # ── Security: limit request body size to 1MB ─────────────────────────────────
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # 1 MB
+
+# ── Gemini client (reads GEMINI_API_KEY from env) ────────────────────────────
+gemini_client = genai.Client()
+
 
 # ── Security: rate limiting ───────────────────────────────────────────────────
 limiter = Limiter(
@@ -1237,9 +1245,34 @@ def delete_prediction(pred_id):
     return jsonify({"ok": True})
 
 
-# ── POST /ai-insight (Ollama streaming — optional local LLM) ─────────────────
+# ── POST /ai-insight (Gemini streaming) ───────────────────────────────────────
 @app.route("/ai-insight", methods=["POST"])
 def ai_insight():
+    data   = request.get_json(force=True)
+    prompt = data.get("prompt", "")
+
+    try:
+        import json as _json
+
+        def generate():
+            stream = gemini_client.models.generate_content_stream(
+                model="gemini-2.5-flash",
+                contents=prompt,
+            )
+            for chunk in stream:
+                token = chunk.text or ""
+                yield f"data: {_json.dumps({'token': token, 'done': False})}\n\n"
+            yield f"data: {_json.dumps({'token': '', 'done': True})}\n\n"
+
+        return app.response_class(
+            generate(),
+            mimetype="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
     data   = request.get_json(force=True)
     prompt = data.get("prompt", "")
     try:

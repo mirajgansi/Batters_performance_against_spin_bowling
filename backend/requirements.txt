@@ -9,3 +9,4 @@ scikit-learn==1.5.2
 lightgbm==4.5.0
 xgboost==2.1.1
 requests==2.32.3
+google-genai>=2.8.0
