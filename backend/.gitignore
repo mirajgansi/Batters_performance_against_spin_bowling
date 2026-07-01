@@ -1,0 +1,4 @@
+# Data — DO NOT push CSVs or models to public GitHub
+*.json
+*.env
+backups/
