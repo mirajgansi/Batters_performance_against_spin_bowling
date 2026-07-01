@@ -44,8 +44,15 @@ import shutil
 from datetime import datetime
 from google import genai
 
-
 app = Flask(__name__)
+
+# Render sits behind a reverse proxy, so without this, Flask sees every
+# request as coming from 127.0.0.1 — which means your rate limiter treats
+# ALL visitors as a single client sharing one quota. This restores the real
+# client IP from Render's X-Forwarded-For header.
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_DIR  = os.path.join(BASE_DIR, "csv")   # all CSVs and PKLs live here
@@ -595,6 +602,7 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/health", methods=["GET"])
+@limiter.exempt
 def health():
     return jsonify({
         "status":            "ok",
@@ -1200,7 +1208,7 @@ def ai_insight():
             mimetype="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
-    except Exception as e:
+    except Exception as e: 
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
