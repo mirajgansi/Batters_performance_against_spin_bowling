@@ -1,5 +1,5 @@
 // ─── Gemini streaming helper (via Flask backend) ─────────────────────────────
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Stream a prompt through your Flask backend's /ai-insight endpoint (Gemini),
