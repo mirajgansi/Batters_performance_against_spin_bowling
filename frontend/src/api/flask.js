@@ -13,25 +13,39 @@ async function apiFetch(path, opts = {}) {
 export const checkHealth = () => apiFetch("/health");
 
 // ── Reference data ────────────────────────────────────────────────────────────
-export const fetchPlayers    = ()      => apiFetch("/players");
-export const fetchVenues     = ()      => apiFetch("/venues");
-export const fetchTeams      = ()      => apiFetch("/teams");
+export const fetchPlayers     = ()     => apiFetch("/players");
+export const fetchVenues      = ()     => apiFetch("/venues");
+export const fetchTeams       = ()     => apiFetch("/teams");
 export const fetchSpinBowlers = (team) =>
   apiFetch(`/spin-bowlers${team ? `?team=${encodeURIComponent(team)}` : ""}`);
 
-// ── Per-player data ───────────────────────────────────────────────────────────
-export const fetchPlayerStats = (id, params = {}) => {
+// Shared helper — drops empty/sentinel filter values so every per-player call
+// builds its query string the same way (no "?season=All Seasons" garbage).
+const buildFilterQs = (params = {}) => {
   const qs = new URLSearchParams(
-    Object.fromEntries(Object.entries(params).filter(([, v]) => v && v !== "All Seasons" && v !== "All Venues" && v !== "All Spin"))
+    Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v && v !== "All Seasons" && v !== "All Venues" && v !== "All Spin")
+    )
   ).toString();
-  return apiFetch(`/player-stats/${id}${qs ? `?${qs}` : ""}`);
+  return qs ? `?${qs}` : "";
 };
 
-export const fetchPlayerSeasons = (id) =>
-  apiFetch(`/player-seasons/${id}`);
+// ── Per-player data ───────────────────────────────────────────────────────────
+export const fetchPlayerStats = (id, params = {}) =>
+  apiFetch(`/player-stats/${id}${buildFilterQs(params)}`);
 
-export const fetchPlayerVenues  = (id) =>
-  apiFetch(`/player-venues/${id}`);
+export const fetchPlayerSeasons = (id, params = {}) =>
+  // params: { venue?, spin_type? } — used for the live dropdown preview.
+  // Called with no params on initial player load to get the base season list.
+  apiFetch(`/player-seasons/${id}${buildFilterQs(params)}`);
+
+export const fetchPlayerVenues = (id, params = {}) =>
+  // params: { season?, spin_type? }
+  apiFetch(`/player-venues/${id}${buildFilterQs(params)}`);
+
+export const fetchPlayerSpinBreakdown = (id, params = {}) =>
+  // params: { season?, venue? } → { spinTypes: [{type, short, balls}], total_balls }
+  apiFetch(`/player-spin-breakdown/${id}${buildFilterQs(params)}`);
 
 // ── Prediction ────────────────────────────────────────────────────────────────
 export const runPrediction = (payload) =>

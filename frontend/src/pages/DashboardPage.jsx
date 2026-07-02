@@ -13,24 +13,63 @@ import {
 } from "../components/ui/index.jsx";
 import { PlayerSearch } from "../components/ui/PlayerSearch.jsx";
 import { AIInsightBox } from "../components/ui/AIInsightBox.jsx";
-import { fetchPlayerStats, fetchPlayerSeasons, fetchPlayerVenues } from "../api/flask";
+import { fetchPlayerStats, fetchPlayerSeasons, fetchPlayerVenues, fetchPlayerSpinBreakdown } from "../api/flask";
+
+const DEFAULT_FILTERS = { spinType: "All Spin", season: "All Seasons", venue: "All Venues" };
 
 export function DashboardPage({ players, apiOk, photoMap }) {
   const [player,        setPlayer]        = useState(null);
   const [stats,         setStats]         = useState(null);
   const [statsLoad,     setStatsLoad]     = useState(false);
-  const [spinType,      setSpinType]      = useState("All Spin");
-  const [season,        setSeason]        = useState("All Seasons");
-  const [venue,         setVenue]         = useState("All Venues");
+
+  // Draft filter values — controlled by the selects, but NOT what's actually
+  // being queried for the full dashboard. Nothing fetches the heavy stats
+  // until "Apply" is clicked.
+  const [spinType,      setSpinType]      = useState(DEFAULT_FILTERS.spinType);
+  const [season,        setSeason]        = useState(DEFAULT_FILTERS.season);
+  const [venue,         setVenue]         = useState(DEFAULT_FILTERS.venue);
+
+  // The filters that were actually applied and are driving the current fetch.
+  const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
+
+  // Base option lists (names only), loaded once per player, unfiltered.
   const [playerSeasons, setPlayerSeasons] = useState([]);
   const [seasonsLoad,   setSeasonsLoad]   = useState(false);
   const [playerVenues,  setPlayerVenues]  = useState([]);
   const [venuesLoad,    setVenuesLoad]    = useState(false);
 
+  // LIVE, cross-filtered ball counts for each dropdown — refreshed as soon as
+  // the user touches any draft filter (debounced), filtered by whatever the
+  // OTHER two draft filters currently are. This is what powers "Option D":
+  // dependent dropdowns that show real sample sizes before you even hit Apply.
+  const [seasonBallsPreview, setSeasonBallsPreview] = useState({}); // { "2023": 41, ... }
+  const [venueBallsPreview,  setVenueBallsPreview]  = useState({}); // { "Wankhede Stadium": 6, ... }
+  const [spinBallsPreview,   setSpinBallsPreview]   = useState({}); // { "off spin": 12, "all spin": 41, ... }
+  const [previewLoad,        setPreviewLoad]        = useState(false);
+
+  const spinValueFor = (label) => SPIN_TYPE_OPTIONS.find((s) => s.label === label)?.value;
+
+  const spinBallsFor = (label, value) => {
+    const key = label?.toLowerCase();
+    if (key === "all spin") return spinBallsPreview["all spin"];
+    return spinBallsPreview[key] ?? spinBallsPreview[value?.toLowerCase()];
+  };
+
+  const hasPendingChanges =
+    spinType !== appliedFilters.spinType ||
+    season   !== appliedFilters.season   ||
+    venue    !== appliedFilters.venue;
+
+  // When the player changes: reload the base season/venue name lists and
+  // reset both the draft filters and the applied filters back to defaults.
   useEffect(() => {
     if (!player || !apiOk) {
-      setPlayerSeasons([]); setSeason("All Seasons");
-      setPlayerVenues([]);  setVenue("All Venues");
+      setPlayerSeasons([]); setPlayerVenues([]);
+      setSpinType(DEFAULT_FILTERS.spinType);
+      setSeason(DEFAULT_FILTERS.season);
+      setVenue(DEFAULT_FILTERS.venue);
+      setAppliedFilters(DEFAULT_FILTERS);
+      setSeasonBallsPreview({}); setVenueBallsPreview({}); setSpinBallsPreview({});
       return;
     }
     setSeasonsLoad(true);
@@ -41,24 +80,75 @@ export function DashboardPage({ players, apiOk, photoMap }) {
     fetchPlayerVenues(player.ID)
       .then((d) => { setPlayerVenues(d.venues || []); setVenuesLoad(false); })
       .catch(() => { setPlayerVenues([]); setVenuesLoad(false); });
-    setSeason("All Seasons");
-    setVenue("All Venues");
+
+    setSpinType(DEFAULT_FILTERS.spinType);
+    setSeason(DEFAULT_FILTERS.season);
+    setVenue(DEFAULT_FILTERS.venue);
+    setAppliedFilters(DEFAULT_FILTERS);
+    setSeasonBallsPreview({}); setVenueBallsPreview({}); setSpinBallsPreview({});
   }, [player?.ID, apiOk]);
 
+  // Live preview: whenever any draft filter changes, re-fetch lightweight
+  // ball-counts for all three dropdowns, each filtered by the OTHER two
+  // current draft selections. Debounced ~350ms so clicking through options
+  // doesn't fire a request per click.
+  useEffect(() => {
+    if (!player || !apiOk) return;
+    const handle = setTimeout(() => {
+      setPreviewLoad(true);
+      const spinValue    = spinType !== "All Spin"    ? spinValueFor(spinType) : undefined;
+      const seasonParam  = season   !== "All Seasons"  ? season                : undefined;
+      const venueParam   = venue    !== "All Venues"   ? venue                 : undefined;
+
+      Promise.all([
+        fetchPlayerSeasons(player.ID, { venue: venueParam, spin_type: spinValue }),
+        fetchPlayerVenues(player.ID,  { season: seasonParam, spin_type: spinValue }),
+        fetchPlayerSpinBreakdown(player.ID, { season: seasonParam, venue: venueParam }),
+      ])
+        .then(([seasonsRes, venuesRes, spinRes]) => {
+          const sMap = {};
+          (seasonsRes.seasons || []).forEach((s) => { sMap[s.season] = s.balls; });
+          setSeasonBallsPreview(sMap);
+
+          const vMap = {};
+          (venuesRes.venues || []).forEach((v) => { vMap[v.venue] = v.balls; });
+          setVenueBallsPreview(vMap);
+
+          const spMap = {};
+          (spinRes.spinTypes || []).forEach((s) => { if (s.type) spMap[s.type.toLowerCase()] = s.balls; });
+          if (typeof spinRes.total_balls === "number") spMap["all spin"] = spinRes.total_balls;
+          setSpinBallsPreview(spMap);
+        })
+        .catch(() => { /* preview is best-effort; ignore failures */ })
+        .finally(() => setPreviewLoad(false));
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [player?.ID, apiOk, spinType, season, venue]);
+
+  // Fetch is driven ONLY by appliedFilters — i.e. only after "Apply" is clicked
+  // (or a player is (re)selected, which applies the defaults automatically).
   useEffect(() => {
     if (!player || !apiOk) { setStats(null); return; }
     setStatsLoad(true); setStats(null);
     const params = {};
-    if (season !== "All Seasons") params.season = season;
-    if (venue  !== "All Venues")  params.venue  = venue;
-    if (spinType !== "All Spin") {
-      const v = SPIN_TYPE_OPTIONS.find((s) => s.label === spinType)?.value;
+    if (appliedFilters.season !== "All Seasons") params.season = appliedFilters.season;
+    if (appliedFilters.venue  !== "All Venues")  params.venue  = appliedFilters.venue;
+    if (appliedFilters.spinType !== "All Spin") {
+      const v = SPIN_TYPE_OPTIONS.find((s) => s.label === appliedFilters.spinType)?.value;
       if (v) params.spin_type = v;
     }
     fetchPlayerStats(player.ID, params)
       .then((d) => { setStats(d.error ? null : d); setStatsLoad(false); })
       .catch(() => setStatsLoad(false));
-  }, [player?.ID, apiOk, season, spinType, venue]);
+  }, [player?.ID, apiOk, appliedFilters]);
+
+  const applyFilters = () => setAppliedFilters({ spinType, season, venue });
+  const resetFilters  = () => {
+    setSpinType(DEFAULT_FILTERS.spinType);
+    setSeason(DEFAULT_FILTERS.season);
+    setVenue(DEFAULT_FILTERS.venue);
+    setAppliedFilters(DEFAULT_FILTERS);
+  };
 
   const weaknesses = useMemo(() => {
     if (!stats?.spinComparison?.length) return [];
@@ -74,16 +164,16 @@ export function DashboardPage({ players, apiOk, photoMap }) {
 
   const filteredSpin = useMemo(() => {
     if (!stats?.spinComparison) return [];
-    if (spinType === "All Spin") return stats.spinComparison;
-    return stats.spinComparison.filter((s) => s.type?.toLowerCase() === spinType.toLowerCase());
-  }, [stats, spinType]);
+    if (appliedFilters.spinType === "All Spin") return stats.spinComparison;
+    return stats.spinComparison.filter((s) => s.type?.toLowerCase() === appliedFilters.spinType.toLowerCase());
+  }, [stats, appliedFilters.spinType]);
 
-  const aiKey    = `${player?.ID}-${spinType}-${season}-${venue}`;
+  const aiKey    = `${player?.ID}-${appliedFilters.spinType}-${appliedFilters.season}-${appliedFilters.venue}`;
   const aiPrompt = player && stats
     ? `You are an expert IPL cricket analyst. Analyze ${player.longName || player.Name}'s batting performance against spin bowling.
 Player: ${player.longName || player.Name}, Style: ${player.longBattingStyles || ""}
 Stats vs Spin — SR: ${stats.sr}, Avg: ${stats.avg}, Dot%: ${stats.dot_pct}%, Boundary%: ${stats.boundary_pct}%, Wicket Rate: ${stats.wkt_rate}%
-Cluster archetype: ${stats.cluster_name}. Filter: ${spinType}, Season: ${season}, Venue: ${venue}
+Cluster archetype: ${stats.cluster_name}. Filter: ${appliedFilters.spinType}, Season: ${appliedFilters.season}, Venue: ${appliedFilters.venue}
 Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesses, most vulnerable spin type, and a fantasy cricket recommendation. Use cricket terminology.`
     : "";
 
@@ -146,70 +236,161 @@ Provide 4-5 sentences covering: overall assessment, key strengths, key weaknesse
             </div>
 
             {/* Filters */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <Icon icon="solar:filter-bold" width={14} color={G.gray500} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: G.gray600, fontFamily: "'Barlow Condensed', sans-serif" }}>Filters:</span>
+                {previewLoad && <InlineSpinner />}
               </div>
               <select value={spinType} onChange={(e) => setSpinType(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: "pointer", outline: "none" }}>
-                <option>All Spin</option>
-                {SPIN_TYPE_OPTIONS.map((s) => <option key={s.value}>{s.label}</option>)}
+                <option value="All Spin">
+                  All Spin{typeof spinBallsPreview["all spin"] === "number" ? ` (${spinBallsPreview["all spin"]} balls)` : ""}
+                </option>
+                {SPIN_TYPE_OPTIONS.map((s) => {
+                  const balls = spinBallsFor(s.label, s.value);
+                  const isDead = balls === 0;
+                  return (
+                    <option key={s.value} value={s.label} disabled={isDead}>
+                      {s.label}{typeof balls === "number" ? ` (${balls} balls)${isDead ? " — no data" : ""}` : ""}
+                    </option>
+                  );
+                })}
               </select>
               <div style={{ position: "relative" }}>
                 <select value={season} onChange={(e) => setSeason(e.target.value)} disabled={seasonsLoad} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: seasonsLoad ? "not-allowed" : "pointer", outline: "none", opacity: seasonsLoad ? 0.6 : 1 }}>
                   <option value="All Seasons">All Seasons</option>
-                  {playerSeasons.map((s) => <option key={s.season} value={s.season}>{s.season}{s.low_data ? " ⚠" : ""} ({s.balls} balls)</option>)}
+                  {playerSeasons.map((s) => {
+                    const balls = seasonBallsPreview[s.season] ?? s.balls;
+                    const isDead = balls === 0;
+                    return (
+                      <option key={s.season} value={s.season} disabled={isDead}>
+                        {s.season} ({balls} balls){isDead ? " — no data" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
                 {seasonsLoad && <InlineSpinner />}
               </div>
               <div style={{ position: "relative" }}>
                 <select value={venue} onChange={(e) => setVenue(e.target.value)} disabled={venuesLoad} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${G.gray300}`, fontSize: 13, fontFamily: "'Barlow Condensed', sans-serif", background: G.white, color: G.gray700, cursor: venuesLoad ? "not-allowed" : "pointer", outline: "none", opacity: venuesLoad ? 0.6 : 1 }}>
                   <option value="All Venues">All Venues</option>
-                  {playerVenues.map((v) => <option key={v.venue} value={v.venue}>{v.venue}{v.low_data ? " ⚠" : ""} ({v.balls} balls)</option>)}
+                  {playerVenues.map((v) => {
+                    const balls = venueBallsPreview[v.venue] ?? v.balls;
+                    const isDead = balls === 0;
+                    return (
+                      <option key={v.venue} value={v.venue} disabled={isDead}>
+                        {v.venue} ({balls} balls){isDead ? " — no data" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
                 {venuesLoad && <InlineSpinner />}
               </div>
+
+              <button
+                onClick={applyFilters}
+                disabled={!hasPendingChanges || statsLoad}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "7px 16px", borderRadius: 8, border: "none",
+                  fontSize: 13, fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif",
+                  letterSpacing: 0.3,
+                  background: hasPendingChanges && !statsLoad ? G.green : G.gray200,
+                  color: hasPendingChanges && !statsLoad ? G.white : G.gray400,
+                  cursor: hasPendingChanges && !statsLoad ? "pointer" : "not-allowed",
+                  transition: "background 0.15s ease",
+                }}
+              >
+                {statsLoad
+                  ? <InlineSpinner />
+                  : <Icon icon="solar:check-circle-bold" width={15} />}
+                Apply
+              </button>
+
+              {(spinType !== DEFAULT_FILTERS.spinType || season !== DEFAULT_FILTERS.season || venue !== DEFAULT_FILTERS.venue) && (
+                <button
+                  onClick={resetFilters}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "7px 10px", borderRadius: 8, border: "none",
+                    fontSize: 12, fontWeight: 600, fontFamily: "'Barlow Condensed', sans-serif",
+                    background: "transparent", color: G.gray500, cursor: "pointer",
+                  }}
+                >
+                  <Icon icon="solar:restart-bold" width={13} />
+                  Reset
+                </button>
+              )}
+
+              {hasPendingChanges && (
+                <span style={{ fontSize: 11, color: G.amber, fontWeight: 600 }}>
+                  Unapplied changes — click Apply to update
+                </span>
+              )}
             </div>
 
-            {/* Data quality warnings */}
-            {season !== "All Seasons" && (() => {
-              const s = playerSeasons.find((ps) => ps.season === season);
-              if (!s) return null;
-              const isCritical = s.balls < 10;
-              if (!isCritical && !s.low_data) return null;
-              return (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", marginBottom: 16, background: isCritical ? G.redLight : G.amberLight, border: `1px solid ${isCritical ? "#fca5a5" : "#fcd34d"}`, borderRadius: 10, borderLeft: `4px solid ${isCritical ? G.red : G.amber}` }}>
-                  <Icon icon={isCritical ? "solar:danger-circle-bold" : "solar:danger-triangle-bold"} width={20} color={isCritical ? G.red : G.amber} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: isCritical ? G.red : G.amber, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>{isCritical ? `Too few games in ${s.season}` : `Limited data for ${s.season}`}</div>
-                    <div style={{ fontSize: 12, color: isCritical ? "#b91c1c" : "#92400e" }}>{isCritical ? `Only ${s.balls} balls — not enough data. Try "All Seasons".` : `Only ${s.balls} balls — interpret with caution.`}</div>
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Applied filter summary title */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+              padding: "10px 14px", marginBottom: 20,
+              background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 10,
+            }}>
+              <Icon icon="solar:tag-bold" width={14} color={G.gray400} />
+              <span style={{ fontSize: 12, color: G.gray400, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Showing</span>
+              <Badge label={appliedFilters.spinType} color={G.green} bg={G.greenLight} />
+              <Badge label={appliedFilters.season}   color={G.blue}  bg="#dbeafe" />
+              <Badge label={appliedFilters.venue}    color="#8b5cf6" bg="#ede9fe" />
+            </div>
 
-            {venue !== "All Venues" && (() => {
-              const v = playerVenues.find((pv) => pv.venue === venue);
-              if (!v) return null;
-              const isCritical = v.balls < 10;
-              if (!isCritical && !v.low_data) return null;
-              return (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", marginBottom: 16, background: isCritical ? G.redLight : G.amberLight, border: `1px solid ${isCritical ? "#fca5a5" : "#fcd34d"}`, borderRadius: 10, borderLeft: `4px solid ${isCritical ? G.red : G.amber}` }}>
-                  <Icon icon={isCritical ? "solar:danger-circle-bold" : "solar:danger-triangle-bold"} width={20} color={isCritical ? G.red : G.amber} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: isCritical ? G.red : G.amber, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>{isCritical ? `Too few balls at ${v.venue}` : `Limited data at ${v.venue}`}</div>
-                    <div style={{ fontSize: 12, color: isCritical ? "#b91c1c" : "#92400e" }}>{isCritical ? `Only ${v.balls} balls — not enough data.` : `Only ${v.balls} balls — interpret with caution.`}</div>
-                  </div>
+            {/* Data quality note — the counts shown in the Season/Venue dropdowns
+                are each independent totals (that season across all venues, that
+                venue across all seasons). Combining several filters at once can
+                intersect down to far fewer balls than either number alone
+                suggests, so the real gating below uses the server's actual
+                combined-filter count (stats.balls), not these independent ones. */}
+            {(appliedFilters.season !== "All Seasons" || appliedFilters.venue !== "All Venues") && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 16px", marginBottom: 16, background: G.gray50, border: `1px solid ${G.gray200}`, borderRadius: 10 }}>
+                <Icon icon="solar:info-circle-bold" width={18} color={G.gray400} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 12, color: G.gray500 }}>
+                  Combining Season + Venue narrows to only deliveries matching <strong>both</strong> — this can be far fewer balls than either filter shows on its own.
                 </div>
-              );
-            })()}
+              </div>
+            )}
 
             {statsLoad && <Spinner text="Loading player stats…" />}
 
             {stats && (() => {
-              const selSeason = season !== "All Seasons" ? playerSeasons.find((ps) => ps.season === season) : null;
-              const selVenue  = venue  !== "All Venues"  ? playerVenues.find((pv) => pv.venue === venue)   : null;
-              if ((selSeason?.balls < 10) || (selVenue?.balls < 10)) return null;
+              // Ground truth: the actual number of balls the server found for
+              // this exact combination of Season + Venue + Spin Type.
+              const totalBalls = typeof stats.balls === "number" ? stats.balls : 0;
+
+              if (totalBalls === 0) {
+                return (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "14px 16px", marginBottom: 16, background: G.redLight, border: "1px solid #fca5a5", borderRadius: 10, borderLeft: `4px solid ${G.red}` }}>
+                    <Icon icon="solar:danger-circle-bold" width={20} color={G.red} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: G.red, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>No matching deliveries</div>
+                      <div style={{ fontSize: 12, color: "#b91c1c" }}>
+                        {player.longName || player.Name} faced 0 balls for {appliedFilters.spinType} · {appliedFilters.season} · {appliedFilters.venue} combined. Try loosening one filter (e.g. switch Venue back to "All Venues").
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (totalBalls < 10) {
+                return (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "14px 16px", marginBottom: 16, background: G.amberLight, border: "1px solid #fcd34d", borderRadius: 10, borderLeft: `4px solid ${G.amber}` }}>
+                    <Icon icon="solar:danger-triangle-bold" width={20} color={G.amber} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: G.amber, fontFamily: "'Barlow Condensed', sans-serif", marginBottom: 2 }}>Too few balls for this combination</div>
+                      <div style={{ fontSize: 12, color: "#92400e" }}>
+                        Only {totalBalls} balls match {appliedFilters.spinType} · {appliedFilters.season} · {appliedFilters.venue} combined — not enough for reliable stats. Try loosening a filter.
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <>

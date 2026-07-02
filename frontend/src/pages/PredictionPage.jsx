@@ -41,8 +41,9 @@ export function PredictionPage({ players, venues, teams, apiOk, photoMap = {} })
       setPredResult(data);
       setAiPredLoad(true);
       const spinLabel = SPIN_TYPE_OPTIONS.find((s) => s.value === spinType)?.label || spinType;
-      const prompt = `You are an IPL cricket analyst explaining a machine learning prediction.
+const prompt = `You are an IPL cricket analyst explaining a machine learning prediction to fans.
 
+CONTEXT
 Player: ${player.longName || player.Name}
 Match: vs ${oppTeam}
 Venue: ${venue}
@@ -51,9 +52,10 @@ Innings: ${innings}
 Bowling Type: ${spinLabel}
 Balls Predicted: ${nBalls}
 
-Prediction:
+MODEL OUTPUT
 - Predicted Runs: ${data.predicted_runs}
 - Predicted Strike Rate: ${data.predicted_sr}
+- Predicted Economy vs ${spinLabel}: ${data.spin_economy ?? data.predicted_economy}
 - Expected Runs (adjusted for dismissal risk): ${data.expected_runs}
 - Dismissal Probability per Ball: ${data.dismissal_prob_pct}%
 - Chance of Dismissal During Spell: ${data.dismiss_in_spell_pct}%
@@ -61,7 +63,15 @@ Prediction:
 - Player Archetype: ${data.cluster_name}
 - Model Version: ${data.model_version}
 
-Write a concise analysis in 3-4 sentences. Explain why the model predicts this performance, which player strengths, matchup, venue, and phase contribute, and the biggest uncertainty that could cause actual performance to differ. Do NOT repeat every statistic above. Write in the style of a professional Cricbuzz or ESPNcricinfo analyst.`;
+TASK
+Write a 3-4 sentence analysis in the style of a professional Cricbuzz/ESPNcricinfo writer. Requirements:
+1. Open by naming the model explicitly (e.g. "Our ${data.model_version} model projects...") — do not omit this.
+2. Explain WHY: connect the player's archetype, historical record against ${spinLabel}, the venue's spin character, and the phase/field-restriction context to the predicted runs, strike rate, and economy.
+3. Reference the economy figure specifically — is the bowler/matchup expected to contain the player, or is scoring likely to come at a cost?
+4. Close with the single biggest uncertainty (e.g. dismissal risk, tactical changes, an exceptional delivery) that could make actual performance diverge.
+5. Do not list out every raw statistic verbatim — synthesize them into analysis, but the model version name is not optional and must appear.
+
+Do not use markdown formatting.`;
       try { await streamGemini(prompt, (t) => setAiPredText(t)); } catch {}
       setAiPredLoad(false);
     } catch (e) {

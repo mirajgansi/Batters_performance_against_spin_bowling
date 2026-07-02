@@ -597,6 +597,57 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
         return pd.DataFrame([vals], columns=FEATURES_V1), FEATURES_V1
 
 
+# ── Spin type reference table + bowler→spin-type lookup, shared by
+#    /player-stats and /player-spin-breakdown (previously duplicated inline
+#    inside player_stats() only). ─────────────────────────────────────────────
+SPIN_TYPES = [
+    ("right-arm offbreak",     "Off Spin",            "OB"),
+    ("slow left-arm orthodox", "Left Arm Orthodox",   "SLA"),
+    ("legbreak",               "Leg Spin",            "LB"),
+    ("legbreak googly",        "Leg Spin (Googly)",   "LBG"),
+    ("left-arm wrist-spin",    "Left Arm Wrist Spin", "LWS"),
+]
+
+def get_bowler_spin_map():
+    """bowler name -> spin_type key, from bowler_spin_stats.csv if available,
+    else derived from players_df bowling styles."""
+    if BOWLER_SPIN_LOOKUP:
+        return dict(BOWLER_SPIN_LOOKUP)
+    bowler_spin_map = {}
+    for _, row in players_df.iterrows():
+        name  = row.get("Name") or row.get("longName", "")
+        style = str(row.get("longBowlingStyles", "")).lower()
+        for spin_key, _, _ in SPIN_TYPES:
+            if spin_key in style:
+                bowler_spin_map[name] = spin_key
+                break
+    return bowler_spin_map
+
+
+def _apply_venue_filter(df, venue_col, venue_filter):
+    if not venue_filter or not venue_col or venue_col not in df.columns:
+        return df
+    exact = df[df[venue_col] == venue_filter]
+    return exact if not exact.empty else df[df[venue_col].str.contains(venue_filter, case=False, na=False)]
+
+
+def _apply_season_filter(df, season_filter):
+    if not season_filter or "season" not in df.columns:
+        return df
+    try:
+        return df[df["season"] == int(season_filter)]
+    except (TypeError, ValueError):
+        return df
+
+
+def _apply_spin_filter(df, spin_filter, bowler_col="bowler"):
+    if not spin_filter or bowler_col not in df.columns:
+        return df
+    bowler_spin_map = get_bowler_spin_map()
+    spin_bowlers = [b for b, s in bowler_spin_map.items() if s == spin_filter]
+    return df[df[bowler_col].isin(spin_bowlers)]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ROUTES
 # ─────────────────────────────────────────────────────────────────────────────
@@ -619,9 +670,23 @@ def health():
 
 @app.route("/players", methods=["GET"])
 def get_players():
-    """All players from 2026_players_details.csv"""
+    """All players from 2026_players_details.csv, sorted by balls faced vs
+    spin (most-faced first) so the search box surfaces established players
+    before obscure/low-data ones, instead of raw CSV order."""
     players = players_df.copy()
     players["ID"] = pd.to_numeric(players["ID"], errors="coerce").fillna(0).astype(int)
+
+    balls_lookup = dict(zip(bf_df["Batter"], bf_df.get("total_balls", pd.Series(dtype=int))))
+
+    def _balls_for(row):
+        for candidate in (row.get("Name"), row.get("longName")):
+            if candidate in balls_lookup:
+                return int(balls_lookup[candidate])
+        return 0
+
+    players["balls_vs_spin"] = players.apply(_balls_for, axis=1)
+    players = players.sort_values("balls_vs_spin", ascending=False, kind="mergesort")
+
     players = players.where(pd.notnull(players), "")
     return jsonify(players.to_dict(orient="records"))
 
@@ -705,8 +770,13 @@ def get_venues():
 
 @app.route("/player-seasons/<int:player_id>", methods=["GET"])
 def player_seasons(player_id):
-    """Return seasons the specific player has ball-by-ball data for, with ball counts."""
+    """Return every season the player has ever faced a ball in, with ball
+    counts recomputed under the optional venue/spin_type filters. Seasons
+    are always listed (even at balls=0 under the current filter) so the
+    frontend dropdown can grey out dead-end options instead of losing them."""
     LOW_DATA = 30
+    venue_filter = request.args.get("venue")
+    spin_filter  = request.args.get("spin_type")
 
     batter_name = get_batter_name(player_id)
     if not batter_name:
@@ -728,13 +798,20 @@ def player_seasons(player_id):
     if player_rows.empty:
         return jsonify({"seasons": []})
 
+    # Full career season list — always shown regardless of filters.
+    all_seasons = sorted(player_rows["season"].dropna().unique(), reverse=True)
+
+    venue_col = get_bbb_venue_col()
+    filtered_rows = _apply_venue_filter(player_rows, venue_col, venue_filter)
+    filtered_rows = _apply_spin_filter(filtered_rows, spin_filter)
+
     result = []
-    for season in sorted(player_rows["season"].dropna().unique(), reverse=True):
-        balls = int((player_rows["season"] == season).sum())
+    for season in all_seasons:
+        balls = int((filtered_rows["season"] == season).sum())
         result.append({
             "season":   str(int(season)),
             "balls":    balls,
-            "low_data": balls < LOW_DATA,
+            "low_data": 0 < balls < LOW_DATA,
         })
 
     return jsonify({"seasons": result})
@@ -742,8 +819,13 @@ def player_seasons(player_id):
 
 @app.route("/player-venues/<int:player_id>", methods=["GET"])
 def player_venues(player_id):
-    """Return venues the specific player has ball-by-ball data for, with ball counts."""
+    """Return every venue the player has ever faced a ball at, with ball
+    counts recomputed under the optional season/spin_type filters. Venues
+    are always listed (even at balls=0 under the current filter) so the
+    frontend dropdown can grey out dead-end options instead of losing them."""
     LOW_DATA = 20
+    season_filter = request.args.get("season")
+    spin_filter   = request.args.get("spin_type")
 
     batter_name = get_batter_name(player_id)
     if not batter_name:
@@ -762,24 +844,68 @@ def player_venues(player_id):
     if player_rows.empty:
         return jsonify({"venues": []})
 
-    venue_counts = (
-        player_rows[venue_col]
-        .dropna()
-        .value_counts()
-        .reset_index()
-    )
-    venue_counts.columns = ["venue", "balls"]
+    # Full career venue list — always shown regardless of filters.
+    all_venues = sorted(player_rows[venue_col].dropna().unique().tolist())
+
+    filtered_rows = _apply_season_filter(player_rows, season_filter)
+    filtered_rows = _apply_spin_filter(filtered_rows, spin_filter)
 
     result = []
-    for _, row in venue_counts.sort_values("venue").iterrows():
-        balls = int(row["balls"])
+    for v in all_venues:
+        balls = int((filtered_rows[venue_col] == v).sum())
         result.append({
-            "venue":    str(row["venue"]),
+            "venue":    str(v),
             "balls":    balls,
-            "low_data": balls < LOW_DATA,
+            "low_data": 0 < balls < LOW_DATA,
         })
 
     return jsonify({"venues": result})
+
+
+@app.route("/player-spin-breakdown/<int:player_id>", methods=["GET"])
+def player_spin_breakdown(player_id):
+    """Lightweight per-spin-type ball counts for a player, filtered by the
+    optional season/venue params. Powers the live spin-type dropdown preview
+    without needing the full /player-stats payload."""
+    season_filter = request.args.get("season")
+    venue_filter  = request.args.get("venue")
+
+    batter_name = get_batter_name(player_id)
+    if not batter_name:
+        return jsonify({"error": "Player not found"}), 404
+
+    bbb_df = get_bbb_df()
+    if bbb_df is None:
+        return jsonify({"spinTypes": [], "total_balls": 0})
+
+    batter_col = next((c for c in ("batter", "Batter") if c in bbb_df.columns), None)
+    bowler_col = next((c for c in ("bowler", "Bowler") if c in bbb_df.columns), None)
+    if not batter_col or not bowler_col:
+        return jsonify({"spinTypes": [], "total_balls": 0})
+
+    player_rows = bbb_df[bbb_df[batter_col] == batter_name]
+    if player_rows.empty:
+        return jsonify({"spinTypes": [], "total_balls": 0})
+
+    venue_col = get_bbb_venue_col()
+    filtered_rows = _apply_season_filter(player_rows, season_filter)
+    filtered_rows = _apply_venue_filter(filtered_rows, venue_col, venue_filter)
+
+    bowler_spin_map = get_bowler_spin_map()
+    spin_types_out = []
+    for spin_key, spin_label, spin_short in SPIN_TYPES:
+        spin_bowlers = [b for b, s in bowler_spin_map.items() if s == spin_key]
+        balls = int(filtered_rows[bowler_col].isin(spin_bowlers).sum())
+        spin_types_out.append({
+            "type":  spin_label,
+            "short": spin_short,
+            "balls": balls,
+        })
+
+    return jsonify({
+        "spinTypes":   spin_types_out,
+        "total_balls": int(len(filtered_rows)),
+    })
 
 
 @app.route("/player-stats/<int:player_id>", methods=["GET"])
@@ -921,14 +1047,6 @@ def player_stats(player_id):
             {"phase": "Middle",    "sr": round(sr * 0.90, 1), "avg": round(avg * 1.10, 1), "balls": round(total_balls * 0.55)},
             {"phase": "Death",     "sr": round(sr * 1.20, 1), "avg": round(avg * 0.75, 1), "balls": round(total_balls * 0.25)},
         ]
-
-    SPIN_TYPES = [
-        ("right-arm offbreak",     "Off Spin",            "OB"),
-        ("slow left-arm orthodox", "Left Arm Orthodox",   "SLA"),
-        ("legbreak",               "Leg Spin",            "LB"),
-        ("legbreak googly",        "Leg Spin (Googly)",   "LBG"),
-        ("left-arm wrist-spin",    "Left Arm Wrist Spin", "LWS"),
-    ]
 
     if BOWLER_SPIN_LOOKUP:
         bowler_spin_map = dict(BOWLER_SPIN_LOOKUP)
