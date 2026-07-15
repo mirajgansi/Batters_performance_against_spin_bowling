@@ -1,5 +1,5 @@
 """
-IPL Spin Prediction Flask API  — v3 Model (memory-optimized)
+IPL Spin Prediction Flask API  — 
 ==============================================================
 Functionally identical to the original app.py. Changes are purely about
 memory footprint:
@@ -255,7 +255,7 @@ if batter_spin_df is not None:
 else:
     print("  batter_spin_features.csv NOT found — /predict will use career stats only (retrain notebook to fix)")
 
-MODEL_VERSION = "v3" if (venue_df is not None and form_df is not None) else "v1"
+MODEL_VERSION = "SpinIQ" if (venue_df is not None and form_df is not None) else "SpinIQ"
 print(f"Model version detected: {MODEL_VERSION}")
 
 if venue_df is not None:
@@ -566,7 +566,7 @@ def build_feature_vector(bf: dict, spin_enc: int, phase_enc: int,
     wkt_rate     = float(src.get("wkt_rate", 5))
     rotation_pct = float(src.get("rotation_pct", 25))
 
-    if MODEL_VERSION == "v3":
+    if MODEL_VERSION == "SpinIQ":
         cluster           = get_cluster(bf)
         v_wkt, v_eco      = get_venue_stats(venue)
         form_sr           = get_form_sr(batter_name, sr)
