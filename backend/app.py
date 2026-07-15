@@ -1,5 +1,5 @@
 """
-IPL Spin Prediction Flask API  — 
+IPL Spin Prediction Flask API  — v3 Model (memory-optimized)
 ==============================================================
 Functionally identical to the original app.py. Changes are purely about
 memory footprint:
@@ -1228,7 +1228,7 @@ def predict():
         dismiss_in_spell_pct = round((1 - (1 - dismissal_prob) ** n_balls) * 100, 1)
 
         balls_faced   = float(bf.get("total_balls", 50))
-        confidence    = round(min(95, 60 + (balls_faced ** 0.5) * 1.2), 1)
+        confidence    = round(min(80, 60 + (balls_faced ** 0.5) * 1.2), 1)
         cluster       = get_cluster(bf)
         spin_bf       = get_spin_specific_stats(batter_name, spin_type)
         data_source   = f"spin-specific ({spin_type})" if spin_bf else "career fallback"
