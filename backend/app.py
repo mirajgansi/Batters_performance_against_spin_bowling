@@ -1303,6 +1303,8 @@ def validation_stats():
     })
 
 
+import time
+
 @app.route("/ai-insight", methods=["POST"])
 def ai_insight():
     data   = request.get_json(force=True)
@@ -1312,25 +1314,35 @@ def ai_insight():
         import json as _json
 
         def generate():
-            stream = gemini_client.models.generate_content_stream(
-                model="gemini-3.6-flash",
-                contents=prompt,
-            )
-            for chunk in stream:
-                token = chunk.text or ""
-                yield f"data: {_json.dumps({'token': token, 'done': False})}\n\n"
-            yield f"data: {_json.dumps({'token': '', 'done': True})}\n\n"
+            last_err = None
+            for attempt in range(3):
+                try:
+                    stream = gemini_client.models.generate_content_stream(
+                        model="gemini-3.6-flash",
+                        contents=prompt,
+                    )
+                    for chunk in stream:
+                        token = chunk.text or ""
+                        yield f"data: {_json.dumps({'token': token, 'done': False})}\n\n"
+                    yield f"data: {_json.dumps({'token': '', 'done': True})}\n\n"
+                    return
+                except Exception as e:
+                    last_err = e
+                    if "503" in str(e) or "UNAVAILABLE" in str(e):
+                        time.sleep(2 ** attempt)  # 1s, 2s, 4s
+                        continue
+                    raise
+            yield f"data: {_json.dumps({'token': 'AI insight temporarily unavailable — please try again shortly.', 'done': True})}\n\n"
 
         return app.response_class(
             generate(),
             mimetype="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
-    except Exception as e: 
+    except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
 
 # ── Global error handlers ─────────────────────────────────────────────────────
 @app.errorhandler(413)
