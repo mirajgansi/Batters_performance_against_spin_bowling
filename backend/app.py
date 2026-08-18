@@ -1313,7 +1313,7 @@ def ai_insight():
 
         def generate():
             stream = gemini_client.models.generate_content_stream(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=prompt,
             )
             for chunk in stream:
