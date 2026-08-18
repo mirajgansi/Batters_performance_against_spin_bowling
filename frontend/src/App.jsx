@@ -50,6 +50,7 @@ export default function App() {
               players={players}
               venues={venues}
               teams={teams}
+               photoMap={photoMap}
               spinBowlers={spinBowlers}
               apiOk={apiOk}
             />

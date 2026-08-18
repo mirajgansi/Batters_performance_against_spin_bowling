@@ -1,7 +1,6 @@
 import Papa from "papaparse";
 
-const PLAYERS_CSV_URL = "../../2026_players_details.csv";
-
+const PLAYERS_CSV_URL = "/2026_players_details.csv";
 /**
  * Loads the players CSV from /public and returns a Map of ID → imgUrl.
  * This runs once at app startup so player photos are available everywhere.
